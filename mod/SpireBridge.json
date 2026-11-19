@@ -1,0 +1,12 @@
+{
+  "id": "SpireBridge",
+  "name": "Spire Bridge",
+  "author": "local",
+  "description": "Exposes game state as compact text and accepts actions over a localhost HTTP API, so an LLM agent can play without screenshots or input simulation.",
+  "version": "0.1.2",
+  "min_game_version": "0.113.0",
+  "has_pck": false,
+  "has_dll": true,
+  "dependencies": [],
+  "affects_gameplay": false
+}

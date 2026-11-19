@@ -1,0 +1,3 @@
+anthropic>=1.0
+# OpenAI-compatible endpoints: OpenAI, OpenRouter, Together, Groq, Ollama, vLLM, LM Studio.
+openai>=1.40

@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replay · __TITLE__</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series: #2a78d6; --critical: #d03b3b; --good: #006300; --wash: rgba(42,120,214,0.10);
+    --code-bg: #f3f2ee;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+      --series: #3987e5; --critical: #e66767; --good: #0ca30c; --wash: rgba(57,135,229,0.14);
+      --code-bg: #232321;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --series: #3987e5; --critical: #e66767; --good: #0ca30c; --wash: rgba(57,135,229,0.14);
+    --code-bg: #232321;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 20px; margin: 0 0 2px; font-weight: 650; }
+  .sub { color: var(--ink-2); font-size: 13px; margin-bottom: 14px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 0 0 16px; padding: 0; list-style: none; }
+  .facts li { font-size: 13px; color: var(--ink-2); }
+  .facts b { color: var(--ink); font-weight: 600; font-size: 15px; display: block; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .chart { padding: 12px 14px 6px; margin-bottom: 14px; position: relative; }
+  .chart h2, .panel h2 { font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 0 0 6px; letter-spacing: .02em; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+         padding: 6px 9px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.12); white-space: nowrap; display: none; z-index: 5; }
+  .tip b { font-weight: 650; }
+  .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr) 250px; gap: 14px; align-items: start; }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } .floors { max-height: 220px; } }
+  .floors { max-height: 72vh; overflow: auto; padding: 6px; }
+  .floors button { display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left; border: 0; background: none; color: var(--ink);
+                   padding: 6px 8px; border-radius: 6px; font: inherit; font-size: 13px; cursor: pointer; }
+  .floors button:hover { background: var(--code-bg); }
+  .floors button[aria-current="true"] { background: var(--wash); font-weight: 600; }
+  .floors .act { font-size: 11px; color: var(--muted); padding: 8px 8px 2px; letter-spacing: .04em; text-transform: uppercase; }
+  .floors small { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .controls { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .controls button { border: 1px solid var(--border); background: var(--surface); color: var(--ink); border-radius: 7px; padding: 5px 12px; font: inherit; cursor: pointer; }
+  .controls button:disabled { opacity: .4; cursor: default; }
+  .controls input[type=range] { flex: 1; min-width: 140px; accent-color: var(--series); }
+  .controls .where { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; }
+  .step { padding: 4px 14px 14px; }
+  .block { margin-top: 14px; }
+  .block h3 { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 0 0 5px; }
+  pre { margin: 0; background: var(--code-bg); border-radius: 8px; padding: 10px 12px; font: 12.5px/1.5 ui-monospace, "Cascadia Mono", Consolas, monospace;
+        white-space: pre-wrap; word-break: break-word; }
+  pre .err { color: var(--critical); font-weight: 600; }
+  pre .head { font-weight: 700; }
+  .think { color: var(--ink-2); white-space: pre-wrap; border-left: 3px solid var(--grid); padding: 2px 0 2px 10px; }
+  .say { white-space: pre-wrap; }
+  .cmd { display: inline-block; font: 12.5px ui-monospace, "Cascadia Mono", Consolas, monospace; background: var(--wash); border-radius: 6px; padding: 3px 8px; margin: 0 6px 6px 0; }
+  .cmd.tool { background: none; border: 1px solid var(--border); color: var(--ink-2); }
+  .meta-line { color: var(--muted); font-size: 12px; margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .panel { padding: 12px 14px; }
+  .panel + .panel { margin-top: 14px; }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; }
+  .kv dt { color: var(--ink-2); } .kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .list { margin: 0; padding: 0; list-style: none; font-size: 13px; }
+  .list li { display: flex; justify-content: space-between; padding: 1px 0; }
+  .list small { color: var(--muted); }
+  .empty { color: var(--muted); font-size: 13px; }
+  .notes { white-space: pre-wrap; font-size: 13px; color: var(--ink-2); }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); margin-left: 8px; vertical-align: 2px; }
+  .decision-menu { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  .decision-menu th, .decision-menu td { padding: 5px 7px; border-bottom: 1px solid var(--border); text-align: left; overflow-wrap: anywhere; }
+  .decision-menu tr.selected { background: var(--wash); font-weight: 600; }
+  .decision-menu th:last-child, .decision-menu td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+  .decision-scroll { max-height: 330px; overflow: auto; }
+  .err { color: var(--critical); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title"></h1>
+  <div class="sub" id="sub"></div>
+  <ul class="facts" id="facts"></ul>
+
+  <div class="card chart" id="hpCard">
+    <h2>HP at each model request (click to jump)</h2>
+    <svg id="hp" viewBox="0 0 1000 150" role="img" aria-label="HP over the run"></svg>
+    <div class="tip" id="tip"></div>
+  </div>
+
+  <div class="layout">
+    <nav class="card floors" id="floors" aria-label="Floors"></nav>
+
+    <main class="card">
+      <div class="controls">
+        <button id="prev" title="Left arrow">&larr; Prev</button>
+        <button id="next" title="Right arrow">Next &rarr;</button>
+        <input id="slider" type="range" min="0" value="0" aria-label="Step">
+        <span class="where" id="where"></span>
+      </div>
+      <div class="step" id="step"></div>
+    </main>
+
+    <aside>
+      <div class="card panel"><h2>At this point</h2><dl class="kv" id="now"></dl></div>
+      <div class="card panel"><h2>Deck</h2><ul class="list" id="deck"></ul></div>
+      <div class="card panel"><h2>Relics</h2><ul class="list" id="relics"></ul></div>
+      <div class="card panel"><h2>Potions</h2><ul class="list" id="potions"></ul></div>
+      <div class="card panel"><h2>Model's notes at the end</h2><div class="notes" id="notes"></div></div>
+    </aside>
+  </div>
+</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const DATA = JSON.parse(document.getElementById('data').textContent);
+const F = DATA.frames, M = DATA.meta;
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const svgEl = (tag, attrs) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+const money = v => v == null ? 'n/a' : v === 0 ? '$0' : '$' + v.toFixed(v < 1 ? 3 : 2);
+const OUTCOME = { victory: 'Victory', defeat: 'Defeat', request_limit: 'Stopped at request cap', cost_limit: 'Stopped at cost cap',
+                  floor_limit: 'Stopped at floor cap', stalled: 'Stalled', refusal: 'Model refused', running: 'Still running',
+                  interrupted: 'Interrupted', abandoned: 'Abandoned', bridge_error: 'Bridge error', api_error: 'API error' };
+
+// What the model was looking at when it made each request: the fresh context
+// it was handed, or else the last game state an act call returned.
+let seen = '';
+for (const f of F) {
+  if (f.episode) seen = f.episode.state;
+  f.seen = seen;
+  for (const c of f.calls) if (c.tool === 'act' && (c.has_game_state || !c.is_error)) seen = c.result;
+}
+
+const TEXT = M.protocol && M.protocol !== 'tools';
+$('title').textContent = `${M.label}${M.effort && !M.policy ? ' · ' + M.effort + ' effort' : ''}${TEXT ? ' · ' + M.protocol + ' protocol' : ''} playing ${M.character || '?'} `;
+$('title').append(el('span', 'badge', OUTCOME[M.outcome] || M.outcome));
+$('sub').textContent = `Seed ${M.seed} · ascension ${M.ascension ?? 0} · game ${M.game_version || '?'} · harness ${M.harness_commit || '?'} · protocol ${M.protocol || 'tools'} · prompt ${M.prompt_fingerprint || '?'}${M.text_protocol ? ` · ${M.text_protocol.decisions} decisions, ${M.text_protocol.retries} retries, ${M.text_protocol.fallbacks} fallbacks` : ''} · ${M.started_at || ''}`;
+for (const [label, value] of [
+  ['Reached floor', M.final_floor ?? '?'], ['Model requests', M.requests ?? F.length], ['Cost', money(M.cost)],
+  ['Rejected action calls', M.action_quality ? `${M.action_quality.rejected_action_calls} / ${M.action_quality.action_calls}` : 'n/a'],
+  ['Wall time', M.duration_s != null ? Math.round(M.duration_s / 60) + ' min' : 'n/a'],
+]) { const li = el('li'); li.append(el('b', null, String(value)), document.createTextNode(label)); $('facts').append(li); }
+$('notes').textContent = M.final_notes || '(none)';
+
+// ---- HP chart
+const W = 1000, H = 150, PAD = { l: 34, r: 10, t: 8, b: 22 };
+const maxHp = Math.max(10, ...F.map(f => f.max_hp || 0));
+const x = i => PAD.l + (F.length <= 1 ? 0 : i * (W - PAD.l - PAD.r) / (F.length - 1));
+const y = v => PAD.t + (1 - v / maxHp) * (H - PAD.t - PAD.b);
+const hp = $('hp');
+for (const v of [0, Math.round(maxHp / 2), maxHp]) {
+  hp.append(svgEl('line', { x1: PAD.l, x2: W - PAD.r, y1: y(v), y2: y(v), stroke: 'var(--grid)', 'stroke-width': 1 }));
+  const t = svgEl('text', { x: PAD.l - 6, y: y(v) + 4, 'text-anchor': 'end' }); t.textContent = v; hp.append(t);
+}
+let lastFloor = null;
+F.forEach((f, i) => {
+  if (f.floor !== lastFloor && f.floor != null) {
+    lastFloor = f.floor;
+    hp.append(svgEl('line', { x1: x(i), x2: x(i), y1: H - PAD.b, y2: H - PAD.b + 4, stroke: 'var(--axis)', 'stroke-width': 1 }));
+    if (f.floor % 5 === 0 || f.floor === 1) { const t = svgEl('text', { x: x(i), y: H - 5, 'text-anchor': 'middle' }); t.textContent = 'F' + f.floor; hp.append(t); }
+  }
+});
+const pts = F.map((f, i) => [x(i), y(f.hp ?? 0)]);
+if (pts.length) {
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  hp.append(svgEl('path', { d: `${line} L${pts[pts.length - 1][0]} ${y(0)} L${pts[0][0]} ${y(0)} Z`, fill: 'var(--wash)' }));
+  hp.append(svgEl('path', { d: line, fill: 'none', stroke: 'var(--series)', 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+}
+const cursor = svgEl('line', { y1: PAD.t, y2: H - PAD.b, stroke: 'var(--ink)', 'stroke-width': 1 });
+const dot = svgEl('circle', { r: 5, fill: 'var(--series)', stroke: 'var(--surface)', 'stroke-width': 2 });
+const hover = svgEl('line', { y1: PAD.t, y2: H - PAD.b, stroke: 'var(--axis)', 'stroke-width': 1, visibility: 'hidden' });
+hp.append(hover, cursor, dot);
+const nearest = evt => { const r = hp.getBoundingClientRect(); const px = (evt.clientX - r.left) / r.width * W;
+  return Math.max(0, Math.min(F.length - 1, Math.round((px - PAD.l) / ((W - PAD.l - PAD.r) / Math.max(1, F.length - 1))))); };
+hp.addEventListener('pointermove', evt => {
+  if (!F.length) return; const i = nearest(evt), f = F[i], tip = $('tip');
+  hover.setAttribute('x1', x(i)); hover.setAttribute('x2', x(i)); hover.setAttribute('visibility', 'visible');
+  tip.replaceChildren(el('b', null, `${f.hp ?? '?'} / ${f.max_hp ?? '?'} HP`), document.createTextNode(` · floor ${f.floor ?? '?'} · request ${i + 1}`));
+  tip.style.display = 'block';
+  const card = $('hpCard').getBoundingClientRect(), r = hp.getBoundingClientRect();
+  const left = r.left - card.left + x(i) / W * r.width;
+  tip.style.left = Math.min(card.width - tip.offsetWidth - 8, Math.max(8, left + 10)) + 'px'; tip.style.top = '30px';
+});
+hp.addEventListener('pointerleave', () => { $('tip').style.display = 'none'; hover.setAttribute('visibility', 'hidden'); });
+hp.addEventListener('click', evt => { if (F.length) show(nearest(evt)); });
+hp.style.cursor = 'pointer';
+
+// ---- floors list
+const floorButtons = [];
+let prevAct = null, prevFloor = null;
+F.forEach((f, i) => {
+  if (f.floor == null || f.floor === prevFloor) return;
+  prevFloor = f.floor;
+  if (f.act !== prevAct) { prevAct = f.act; $('floors').append(el('div', 'act', 'Act ' + f.act)); }
+  const b = el('button'); b.append(el('span', null, `Floor ${f.floor} · ${(f.room || f.screen || '').replace('RestSite', 'Rest')}`), el('small', null, `${f.hp ?? '?'} HP`));
+  b.addEventListener('click', () => show(i)); b.dataset.first = i; $('floors').append(b); floorButtons.push(b);
+});
+
+// ---- step view
+function stateBlock(text) {
+  const pre = el('pre');
+  (text || '(nothing)').split('\n').forEach((line, i) => {
+    const span = el('span', line.startsWith('!') && !/^! (stopped after |skipped )/.test(line) ? 'err' : (i === 0 || /^[A-Z_]+[: ]/.test(line) && !line.startsWith('Commands') ? 'head' : null), line.startsWith('!') ? '⚠ ' + line.slice(1).trim() : line);
+    pre.append(span, document.createTextNode('\n'));
+  });
+  return pre;
+}
+function block(title, node) { const d = el('div', 'block'); d.append(el('h3', null, title), node); return d; }
+function decisionBlock(d, providerCost) {
+  const body = el('div');
+  const raw = value => value == null ? 'not returned' : typeof value === 'string' ? value : JSON.stringify(value);
+  body.append(el('div', 'say', `Selected: ${raw(d.choice)}${d.command ? ' → ' + d.command : ''}`));
+  body.append(el('div', 'meta-line', `Provider-reported confidence: ${raw(d.confidence)}${providerCost != null ? ' · API cost: $' + providerCost : ''}`));
+  if (d.error) body.append(el('div', 'err', d.error));
+  if (d.menu_truncated) body.append(el('div', 'meta-line', 'The offered candidate menu was truncated by the harness.'));
+  const table = el('table', 'decision-menu'), head = el('tr');
+  for (const name of ['Candidate', 'Game command', 'Provider probability']) head.append(el('th', null, name));
+  table.append(head);
+  const probabilities = d.probabilities && typeof d.probabilities === 'object' ? d.probabilities : {};
+  for (const [id, command] of Object.entries(d.candidates || {})) {
+    const tr = el('tr', id === d.choice ? 'selected' : null);
+    tr.append(el('td', null, id + (id === d.choice ? ' ✓' : '')), el('td', null, command), el('td', null, raw(probabilities[id])));
+    table.append(tr);
+  }
+  const scroll = el('div', 'decision-scroll'); scroll.append(table); body.append(scroll);
+  const details = el('details'), summary = el('summary', 'meta-line', 'Recorded criteria and full response');
+  const pre = el('pre'); pre.textContent = JSON.stringify(d, null, 2);
+  details.append(summary, pre); body.append(details);
+  return block('Typed decision: offered actions and selected answer', body);
+}
+function fillList(id, items, counted) {
+  const ul = $(id); ul.replaceChildren();
+  if (!items.length) { ul.append(el('li', 'empty', 'none')); return; }
+  if (!counted) { for (const it of items) ul.append(el('li', null, it)); return; }
+  const counts = new Map(); for (const it of items) counts.set(it, (counts.get(it) || 0) + 1);
+  for (const [name, n] of [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))) { const li = el('li'); li.append(el('span', null, name), el('small', null, n > 1 ? '×' + n : '')); ul.append(li); }
+}
+let cur = 0;
+function show(i) {
+  if (!F.length) { $('step').append(el('p', 'empty', 'This recording has no steps yet.')); return; }
+  cur = Math.max(0, Math.min(F.length - 1, i));
+  const f = F[cur], step = $('step'); step.replaceChildren();
+  if (f.episode) {
+    const ctx = el('pre'); ctx.textContent = (f.episode.summary ? f.episode.summary + '\n\n' : '') + 'Notes carried over: ' + (f.episode.notes || '(none)');
+    step.append(block(TEXT ? 'New floor (every decision is stateless: it sees the run summary and the state only)' : 'New floor: context was reset and rebuilt from this', ctx));
+  }
+  step.append(block('What the model saw', stateBlock(f.seen)));
+  if (f.thinking) step.append(block('Reasoning (summary)', el('div', 'think', f.thinking)));
+  if (f.decision_response) step.append(decisionBlock(f.decision_response, f.provider_cost));
+  else if (f.text || TEXT) step.append(block('What it said', el('div', 'say', f.text || '(nothing)')));
+  if (f.invalid) step.append(block(f.attempt === 1 ? 'Rejected: shown back once with the error' : 'Rejected again: a fallback was played', el('div', 'say', f.invalid)));
+  for (const c of f.calls) {
+    const head = el('div');
+    if (c.tool === 'act') String(c.input.commands || '').split(/[;\n]/).map(s => s.trim()).filter(Boolean).forEach(cmd => head.append(el('span', 'cmd', cmd)));
+    else head.append(el('span', 'cmd tool', c.tool + ': ' + (c.input.query ?? c.input.notes ?? JSON.stringify(c.input))));
+    step.append(block(c.fallback ? 'Fallback played for it' : c.tool === 'act' ? 'Commands sent' : c.tool === 'set_notes' ? 'Saved a note to itself' : 'Lookup', head));
+    if (c.game_rejected) step.append(el('div', 'err', `Game rejected a command (${c.game_errors.length} error line${c.game_errors.length === 1 ? '' : 's'}). The batch may have executed earlier commands.`));
+    if (c.is_error) step.append(el('div', 'err', 'Tool exchange reported an error.'));
+    if (c.bridge_errors && c.bridge_errors.length) step.append(el('div', 'err', 'Bridge rendering or lookup error.'));
+    if (c.batch_notices && c.batch_notices.length && !c.game_rejected) step.append(el('div', 'meta-line', 'Batch stopped at a state change or draw; this is normal control flow, not a rejected action.'));
+    if (c.tool !== 'set_notes') step.append(block(c.tool === 'act' ? 'Game answered' : 'Answer', stateBlock(c.result)));
+  }
+  const u = f.usage || {};
+  step.append(el('div', 'meta-line', `request ${cur + 1} of ${F.length} · ${f.latency ?? '?'}s · ${(u.input || 0) + (u.cache_read || 0) + (u.cache_write || 0)} tokens in, ${u.output || 0} out · ${money(f.cost)} · t+${Math.round(f.t || 0)}s`));
+
+  $('where').textContent = `${cur + 1} / ${F.length} · floor ${f.floor ?? '?'}`;
+  $('slider').value = cur; $('prev').disabled = cur === 0; $('next').disabled = cur === F.length - 1;
+  cursor.setAttribute('x1', x(cur)); cursor.setAttribute('x2', x(cur)); dot.setAttribute('cx', x(cur)); dot.setAttribute('cy', y(f.hp ?? 0));
+  const now = $('now'); now.replaceChildren();
+  for (const [k, v] of [['Act', f.act], ['Floor', f.floor], ['HP', `${f.hp ?? '?'} / ${f.max_hp ?? '?'}`], ['Gold', f.gold], ['Deck size', f.deck.length], ['Screen', f.screen]]) now.append(el('dt', null, k), el('dd', null, String(v ?? '?')));
+  fillList('deck', f.deck, true); fillList('relics', f.relics, false); fillList('potions', f.potions, false);
+  let active = null; for (const b of floorButtons) { if (+b.dataset.first <= cur) active = b; b.removeAttribute('aria-current'); }
+  if (active) { active.setAttribute('aria-current', 'true'); active.scrollIntoView({ block: 'nearest' }); }
+}
+$('slider').max = Math.max(0, F.length - 1);
+$('slider').addEventListener('input', e => show(+e.target.value));
+$('prev').addEventListener('click', () => show(cur - 1));
+$('next').addEventListener('click', () => show(cur + 1));
+document.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT') return; if (e.key === 'ArrowLeft') show(cur - 1); if (e.key === 'ArrowRight') show(cur + 1); });
+show(0);
+</script>
+</body>
+</html>

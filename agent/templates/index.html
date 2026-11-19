@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spire benchmark index</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --wash: #f3f2ee;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: #232321;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: #232321;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font-size: 24px; margin: 0 0 4px; font-weight: 650; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-2); margin-bottom: 14px; max-width: 800px; }
+  .fine { color: var(--muted); font-size: 12px; margin-bottom: 22px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; position: relative; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; font-weight: 650; }
+  .card .lede { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; max-width: 760px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+  .tile .k { color: var(--ink-2); font-size: 12px; }
+  .tile .v { font-size: 20px; font-weight: 650; font-variant-numeric: tabular-nums; line-height: 1.3; }
+  .tile .n { color: var(--muted); font-size: 12px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  svg text.lab { fill: var(--ink-2); font-size: 12px; font-weight: 600; }
+  svg text.val { fill: var(--ink); font-size: 12px; font-weight: 600; }
+  svg text.head { fill: var(--ink-2); font-size: 13px; font-weight: 600; }
+  .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+         padding: 8px 11px; font-size: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.14); display: none; z-index: 5; min-width: 150px; }
+  .tip .t { color: var(--ink-2); margin-bottom: 4px; }
+  .tip .r { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .tip .r b { font-weight: 650; min-width: 38px; }
+  .tip .r span.n { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-weight: 600; color: var(--ink-2); font-size: 12px; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--axis); white-space: nowrap; vertical-align: bottom; }
+  td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .scroll { overflow-x: auto; }
+  a { color: inherit; text-decoration-color: var(--axis); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--ink); }
+  .name { font-weight: 600; white-space: nowrap; }
+  .small { color: var(--muted); font-size: 12px; }
+  .flag { display: block; color: var(--ink-2); font-size: 12px; }
+  .flag::before { content: "⚠ "; }
+  code, .mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+  .pct { color: var(--muted); }
+  .out, .nowrap { white-space: nowrap; }
+  .note { color: var(--ink-2); font-size: 13px; }
+  .note li { margin-bottom: 4px; }
+  details { margin-top: 10px; }
+  summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+  details .scroll { margin-top: 8px; }
+  .warn { background: var(--wash); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--ink-2); margin-bottom: 16px; }
+  .list { margin: 0; padding: 0; list-style: none; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Slay the Spire 2 LLM benchmark</h1>
+  <div class="sub" id="sub"></div>
+  <div class="tiles" id="tiles"></div>
+  <div class="fine" id="fine"></div>
+  <div class="warn" id="warn" hidden></div>
+
+  <div class="card">
+    <h2>Leaderboard</h2>
+    <p class="lede" id="boardLede"></p>
+    <div class="scroll"><table id="board"></table></div>
+  </div>
+
+  <div class="card" id="cardChart">
+    <h2>How far each one gets</h2>
+    <p class="lede">For each leaderboard row, the share of decided runs that cleared Act 1, cleared Act 2, and won. Same rows and order as the leaderboard; each panel has the same 0 to 100% scale. Hover a bar for the counts.</p>
+    <svg id="chart" role="img" aria-label="Share of runs that cleared Act 1, cleared Act 2 and won, for each leaderboard row"></svg>
+    <details>
+      <summary>Show the chart as a table</summary>
+      <div class="scroll"><table id="chartTable"></table></div>
+    </details>
+    <div class="tip"></div>
+  </div>
+
+  <div class="card">
+    <h2>Suites</h2>
+    <p class="lede">Each suite is one benchmark session: every model in it played the same seeds under the same prompt and limits. Its report has the full analysis (pass@k, survival by floor, HP, a replay per run).</p>
+    <div class="scroll"><table id="suites"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>Comparisons</h2>
+    <p class="lede">Reports that put the same models from several suites side by side, to see whether a change (prompt, playbook, harness) helped.</p>
+    <div id="compares"></div>
+  </div>
+
+  <div class="card">
+    <h2>Recent runs</h2>
+    <p class="lede" id="recentLede"></p>
+    <div class="scroll"><table id="recent"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>How to read this</h2>
+    <ul class="note" id="notes"></ul>
+  </div>
+</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const L = D.leaderboard, ST = D.stage_names, T = D.totals, NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const sv = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
+const pct = v => v == null ? 'n/a' : Math.round(v * 100) + '%';
+const money = v => v == null ? 'n/a' : v === 0 ? '$0' : '$' + v.toFixed(v < 1 ? 3 : 2);
+const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+const OUT = { victory: ['✓', 'Won'], defeat: ['✕', 'Died'], running: ['…', 'Still running'], request_limit: ['⏸', 'Hit request cap'],
+              cost_limit: ['⏸', 'Hit cost cap'], floor_limit: ['⏸', 'Hit floor cap'], stalled: ['⏸', 'Stalled'], refusal: ['⏸', 'Refused'],
+              interrupted: ['⏸', 'Interrupted'], abandoned: ['⏸', 'Abandoned'], bridge_error: ['⏸', 'Bridge error'], api_error: ['⏸', 'API error'] };
+const outText = o => (OUT[o] || ['⏸', o]).join(' ');
+const anchor = (href, text) => { const a = el('a', null, text); a.href = href; return a; };
+const stageCell = st => st.decided ? `${st.cleared} of ${st.decided}` : 'none decided';
+function td(cls, ...kids) { const c = el('td', cls); for (const k of kids) c.append(typeof k === 'string' ? document.createTextNode(k) : k); return c; }
+function headRow(table, cols) { const tr = el('tr'); for (const [h, num] of cols) tr.append(el('th', num ? 'num' : null, h)); table.append(tr); }
+
+// ---- header
+$('sub').textContent = 'Language models play Slay the Spire 2 through a text bridge: no screenshots, the same prompt and tools for every model, and every run started from a fixed seed with all content unlocked, so two models on one seed face the same game. A run is scored by how far it gets: clearing Act 1, clearing Act 2, and winning.';
+const tiles = [
+  ['Runs', String(T.runs), `${plural(T.suites, 'suite')}${T.running ? `, ${T.running} still running` : ''}`],
+  ['Spend', money(T.spend), T.spend_unknown ? `${plural(T.spend_unknown, 'run')} with no cost recorded` : T.mean_run_cost != null ? `${money(T.mean_run_cost)} per finished run` : ''],
+  ['Dates', T.first ? T.first.slice(0, 10) : '?', T.last && T.first && T.last.slice(0, 10) !== T.first.slice(0, 10) ? `to ${T.last.slice(0, 10)} · run starts, UTC` : 'run starts, UTC'],
+  ['Game version', T.game_versions.join(', ') || '?', `${T.characters.join(', ') || '?'} at ascension ${T.ascensions.join(', ') || '0'}`],
+];
+for (const [k, v, n] of tiles) { const t = el('div', 'tile'); t.append(el('div', 'k', k), el('div', 'v', v), el('div', 'n', n)); $('tiles').append(t); }
+$('fine').textContent = `Built ${D.generated} UTC from the recordings under bench/ · models: ${T.models.join(', ')} · protocols: ${(T.protocols || ['tools']).join(', ')} · prompt fingerprints: ${T.fingerprints.join(', ') || '?'}`
+  + (D.skipped.length ? ` · left out as test data: ${D.skipped.join(', ')} (rebuild with --include-smoke to show them)` : '')
+  + (D.include_smoke ? ' · smoke-test suites included' : '');
+const warns = [];
+if (T.running) warns.push(`${plural(T.running, 'run')} ${T.running === 1 ? 'is' : 'are'} still in progress; ${T.running === 1 ? 'it counts' : 'they count'} as cut short at the current floor until finished.`);
+const prelim = L.filter(r => r.preliminary);
+if (prelim.length) warns.push(`${plural(prelim.length, 'leaderboard row')} have fewer than ${D.preliminary_below} decided runs at one or more stages. Sampling uncertainty is large; the ordering is exploratory.`);
+if (warns.length) { $('warn').hidden = false; $('warn').textContent = warns.join(' '); }
+
+// ---- leaderboard
+const promptOf = r => `${r.protocol || 'tools'} · ${r.fingerprint}`;
+$('boardLede').textContent = 'Rows keep model, effort, decision protocol, prompt, character, ascension, game/mod version, harness commit and run limits separate. Sorted by decided-run win rate, then earlier acts. Seeds and attempts may still differ between rows; this order is descriptive, not a controlled ranking. The Wins column counts every recorded run, including cut-short runs.';
+(function () {
+  const t = $('board');
+  headRow(t, [['#', 1], ['Model', 0], ['Prompt', 0], ['Runs', 1], ['Wins', 1], ...ST.slice(0, -1).map(s => [s.stage, 1]), ['Median floor', 1], ['Best floor', 1], ['Cost per run', 1], ['Suites', 0]]);
+  L.forEach((r, n) => {
+    const tr = el('tr'), name = td(null, el('div', 'name', r.label));
+    name.append(el('div', 'small', `${r.conditions.character || '?'} A${r.conditions.ascension ?? '?'} · game ${r.conditions.game_version || '?'} · harness ${r.conditions.harness_commit || '?'}`));
+    if (r.infrastructure_failures || r.behavioral_failures) name.append(el('span', 'flag', `${r.infrastructure_failures || 0} API/game errors; ${r.behavioral_failures || 0} stalled/refused`));
+    if (r.preliminary) name.append(el('span', 'flag', 'Preliminary: fewer than 10 decided runs at one or more stages'));
+    if (r.running) name.append(el('span', 'flag', `${r.running} still running`));
+    if (r.action_calls) name.append(el('div', 'small', `${r.rejected_action_calls || 0}/${r.action_calls} act calls rejected (${pct(r.rejected_action_rate)})`));
+    name.title = JSON.stringify(r.conditions);
+    name.append(el('div', 'small', `Limits: ${JSON.stringify(r.conditions.limits || {})}`));
+    const stagesTd = r.stages.slice(0, -1).map(st => td('num', stageCell(st), ...(st.decided ? [el('div', 'pct', pct(st.rate))] : [])));
+    const win = r.stages[r.stages.length - 1];
+    const suites = td(null); r.suites.forEach((s, i) => { const s2 = D.suites.find(x => x.name === s.name);
+      const line = el('div'); line.append(s2 && s2.report ? anchor(s2.report, s.name) : document.createTextNode(s.name), el('span', 'small', ` · ${s.runs}`)); suites.append(line); });
+    tr.append(td('num', String(n + 1)), name, td(null, el('span', 'mono', promptOf(r))), td('num', String(r.runs)),
+      td('num', `${r.wins} of ${r.runs}`, el('div', 'pct', pct(r.runs ? r.wins / r.runs : null))), ...stagesTd,
+      td('num', String(r.median_floor)), td('num', String(r.best_floor)), td('num', money(r.mean_cost)), suites);
+    t.append(tr);
+  });
+})();
+
+// ---- chart: small multiples, one panel per stage, one bar per leaderboard row
+const tipEl = $('cardChart').querySelector('.tip');
+function showTip(e, title, rows) {
+  tipEl.replaceChildren(el('div', 't', title));
+  for (const r of rows) { const row = el('div', 'r'); row.append(el('b', null, r.value), document.createTextNode(r.label)); if (r.note) row.append(el('span', 'n', r.note)); tipEl.append(row); }
+  tipEl.style.display = 'block';
+  const card = $('cardChart'), box = card.getBoundingClientRect(); let left = e.clientX - box.left + 14, top = e.clientY - box.top + 14;
+  if (left + tipEl.offsetWidth > box.width - 8) left = e.clientX - box.left - tipEl.offsetWidth - 14;
+  tipEl.style.left = Math.max(8, left) + 'px'; tipEl.style.top = Math.max(8, Math.min(top, box.height - tipEl.offsetHeight - 8)) + 'px';
+}
+const hideTip = () => { tipEl.style.display = 'none'; };
+const subLabel = r => `${promptOf(r)} · ${plural(r.runs, 'run')}${r.preliminary ? ' (preliminary)' : ''}`;
+function bar(svg, x0, y, w, h) {
+  if (w < 1) return svg.appendChild(sv('rect', { x: x0, y, width: 1.5, height: h, fill: 'var(--s1)' }));   // a zero still shows a sliver
+  const r = Math.min(4, w, h / 2);   // rounded at the data end, square on the baseline
+  return svg.appendChild(sv('path', { d: `M${x0} ${y} H${x0 + w - r} Q${x0 + w} ${y} ${x0 + w} ${y + r} V${y + h - r} Q${x0 + w} ${y + h} ${x0 + w - r} ${y + h} H${x0} Z`, fill: 'var(--s1)' }));
+}
+let lastW = 0;
+function drawChart() {
+  const svg = $('chart'), W = Math.max(300, Math.round(svg.parentElement.clientWidth || 1000));
+  if (W === lastW) return; lastW = W;
+  svg.replaceChildren();
+  const wide = W >= 720, ticks = [0, .25, .5, .75, 1];
+  const tipRows = r => r.stages.map(st => ({ value: st.decided ? pct(st.rate) : '–', label: st.stage, note: st.decided ? ` · ${st.cleared} of ${st.decided} decided runs` : ' · no decided runs' }));
+  // One panel's bars and axis. rowY(i) is the top of row i; rows are rowH tall with the bar barH tall at barOff.
+  function panel(g, x0, pw, top, rowY, rowH, barOff, barH, bottom) {
+    const scale = pw - 40, x = v => x0 + v * scale;   // room after 100% for its value label
+    for (const v of ticks) { svg.append(sv('line', { x1: x(v), x2: x(v), y1: top, y2: bottom, stroke: v === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1 }));
+      if (v === 0 || v === .5 || v === 1) svg.append(sv('text', { x: x(v), y: bottom + 15, 'text-anchor': v === 0 ? 'start' : 'middle' }, pct(v))); }
+    L.forEach((r, i) => { const st = r.stages[g], y = rowY(i) + barOff;
+      let mark = null;
+      if (st.decided) { mark = bar(svg, x(0), y, st.rate * scale, barH);
+        svg.append(sv('text', { x: x(st.rate) + 6, y: y + barH / 2 + 4, class: 'val' }, pct(st.rate))); }
+      else svg.append(sv('text', { x: x(0) + 6, y: y + barH / 2 + 4 }, 'none decided'));
+      const hit = sv('rect', { x: x0 - 4, y: rowY(i), width: pw + 4, height: rowH, fill: 'transparent' });
+      hit.addEventListener('pointermove', e => { showTip(e, `${r.label} · ${r.protocol || 'tools'} protocol, prompt ${r.fingerprint}`, tipRows(r)); if (mark) mark.setAttribute('opacity', .8); });
+      hit.addEventListener('pointerleave', () => { hideTip(); if (mark) mark.setAttribute('opacity', 1); });
+      svg.append(hit); });
+  }
+  if (wide) {
+    // Labels once on the left, the stages side by side sharing the rows.
+    const labelW = 250, gap = 28, rowH = 40, top = 28, pw = (W - labelW - gap * (ST.length - 1)) / ST.length, bottom = top + L.length * rowH;
+    const H = bottom + 22; svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    L.forEach((r, i) => { const y = top + i * rowH;
+      svg.append(sv('text', { x: 0, y: y + 17, class: 'lab' }, `${i + 1}. ${r.label}`), sv('text', { x: 0, y: y + 31 }, subLabel(r))); });
+    ST.forEach((s, g) => { const x0 = labelW + g * (pw + gap);
+      svg.append(sv('text', { x: x0, y: 14, class: 'head' }, s.stage));
+      panel(g, x0, pw, top, i => top + i * rowH, rowH, 13, 14, bottom); });
+  } else {
+    // Narrow screens: the panels stack, and each row carries its label above its bar.
+    const rowH = 42, headH = 26, axisH = 30; let y = 0;
+    ST.forEach((s, g) => {
+      svg.append(sv('text', { x: 0, y: y + 16, class: 'head' }, s.stage));
+      const top = y + headH, bottom = top + L.length * rowH;
+      L.forEach((r, i) => { const t = sv('text', { x: 0, y: top + i * rowH + 13, class: 'lab' }, `${i + 1}. ${r.label} `);
+        t.append(sv('tspan', { class: 'sub', style: 'font-weight:400;fill:var(--muted);font-size:11px' }, subLabel(r))); svg.append(t); });
+      panel(g, 0, W, top, i => top + i * rowH, rowH, 19, 14, bottom);
+      y = bottom + axisH + 10;
+    });
+    svg.setAttribute('viewBox', `0 0 ${W} ${y}`);
+  }
+}
+drawChart();
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => drawChart()).observe($('chart').parentElement);
+else window.addEventListener('resize', drawChart);
+(function () {
+  const t = $('chartTable');
+  headRow(t, [['#', 1], ['Model', 0], ['Prompt', 0], ...ST.map(s => [s.stage, 1])]);
+  L.forEach((r, n) => { const tr = el('tr'); tr.append(td('num', String(n + 1)), td('name', r.label), td(null, el('span', 'mono', promptOf(r))),
+    ...r.stages.map(st => td('num', st.decided ? `${pct(st.rate)} (${st.cleared} of ${st.decided})` : 'none decided'))); t.append(tr); });
+})();
+
+// ---- suites
+(function () {
+  const t = $('suites');
+  headRow(t, [['Suite', 0], ['Started (UTC)', 0], ['Models', 0], ['Seeds', 0], ['Attempts', 1], ['Runs', 1], ['Wins', 1], ['Spend', 1], ['Prompt', 0], ['Harness', 0], ['Links', 0]]);
+  for (const s of [...D.suites].reverse()) {   // newest first
+    const name = td(null, el('div', 'name', s.name));
+    if (s.cost_audit && (s.cost_audit.retry_archive_usd || s.cost_audit.adjustments_usd)) name.append(el('span', 'flag', `Spend includes ${money(s.cost_audit.retry_archive_usd)} retry archives + ${money(s.cost_audit.adjustments_usd)} documented adjustments`));
+    if (s.smoke) name.append(el('span', 'small', 'smoke test'));
+    if (s.running) name.append(el('span', 'flag', `${s.running} unfinished (still running or stopped mid-run)`));
+    if (s.planned && s.runs < s.planned) name.append(el('span', 'flag', `${s.runs} of ${s.planned} planned runs on file`));
+    if (!s.report) name.append(el('span', 'flag', 'no report built yet'));
+    else if (s.report_stale) name.append(el('span', 'flag', 'report is older than the newest recording; rebuild it'));
+    const models = td(null); for (const m of s.models) models.append(el('div', 'nowrap', m));
+    const attempts = s.planned_attempts && s.planned_attempts !== s.attempts ? `${s.attempts} (${s.planned_attempts} planned)` : String(s.attempts);
+    const links = td(null); if (s.report) links.append(anchor(s.report, 'Report'), document.createTextNode(' · ')); links.append(anchor(s.folder, 'Folder'));
+    const seeds = s.seeds.length > 4 ? `${s.seeds.slice(0, 3).join(', ')} +${s.seeds.length - 3}` : s.seeds.join(', ');
+    const tr = el('tr'); t.append(tr);
+    tr.append(name, td('nowrap', s.first ? `${s.first}${s.last && s.last.slice(0, 10) !== s.first.slice(0, 10) ? ' to ' + s.last.slice(0, 10) : ''}` : '?'), models,
+      td(null, seeds), td('num', attempts), td('num', String(s.runs)), td('num', `${s.wins} of ${s.runs}`),
+      td('num', money(s.spend) + (s.spend_unknown ? ' +?' : '')), td(null, el('span', 'mono', s.prompt_fingerprints.join(', ') || '?')),
+      td(null, el('span', 'mono', s.harness_commits.join(', ') || '?')), links);
+  }
+})();
+
+// ---- comparisons
+(function () {
+  if (!D.compares.length) { $('compares').append(el('p', 'note', 'None yet. Build one with python agent\\report.py --compare suiteA,suiteB.')); return; }
+  const t = el('table'); headRow(t, [['Comparison', 0], ['Suites compared (baseline first)', 0], ['Runs', 1], ['Built (UTC)', 0]]);
+  for (const c of D.compares) { const tr = el('tr'), su = td(null);
+    for (const s of c.suites) { const line = el('div'); line.append(s.report ? anchor(s.report, s.name) : document.createTextNode(s.name || '?'));
+      line.append(el('span', 'small', ` · ${s.label && s.label !== s.name ? `"${s.label}", ` : ''}prompt ${s.prompt_fingerprints.join(', ') || '?'}`)); su.append(line); }
+    if (!c.suites.length) su.append(el('span', 'small', 'details not readable; open the report'));
+    const name = td(null, el('div', 'name')); name.firstChild.append(anchor(c.report, c.name));
+    if (c.running) name.append(el('span', 'flag', `${c.running} runs were unfinished when built`));
+    tr.append(name, su, td('num', c.runs == null ? '?' : String(c.runs)), td(null, c.built || '?')); t.append(tr); }
+  const w = el('div', 'scroll'); w.append(t); $('compares').append(w);
+})();
+
+// ---- recent runs
+(function () {
+  $('recentLede').textContent = `The latest ${D.recent.length} runs by start time, across the suites above. Each replay shows what the model saw, its reasoning, what it sent and what the game answered, step by step.`;
+  const t = $('recent');
+  headRow(t, [['Started (UTC)', 0], ['Suite', 0], ['Model', 0], ['Seed', 0], ['Attempt', 1], ['Outcome', 0], ['Floor', 1], ['Act', 1], ['Requests', 1], ['Cost', 1], ['Replay', 0]]);
+  for (const r of D.recent) { const tr = el('tr'), rep = td(null);
+    if (r.replay) { rep.append(anchor(r.replay, 'Open')); if (r.replay_stale) rep.append(el('span', 'small', ' (older than the recording)')); }
+    else rep.append(el('span', 'small', 'not built'));
+    tr.append(td('nowrap', r.started || '?'), td(null, r.suite), td('name', r.label), td(null, r.seed || '?'), td('num', String(r.attempt)), td('out', outText(r.outcome)),
+      td('num', String(r.final_floor)), td('num', String(r.final_act ?? '?')), td('num', String(r.requests)), td('num', money(r.cost)), rep);
+    t.append(tr); }
+})();
+
+// ---- notes
+for (const line of [
+  'Cleared Act 1 and Act 2 mean the run got past that act\'s boss; won means it beat the final act. A run that dies on the Act 3 boss has cleared Acts 1 and 2. "Decided" runs exclude ones stopped by a request, cost or floor cap (or still playing) before reaching that act: they say nothing about it either way.',
+  'Rows pool suites only when model, effort, protocol, prompt and recorded game/harness conditions match. Those suites may still differ in seeds and attempts per seed (shown in each suite\'s report), so a pooled rate mixes seed difficulty with model skill. For a head-to-head, use a completed suite report and check matched seeds, attempts, conditions and completion failures.',
+  'Median and best floor are the last floor reached over every run in the row, including runs cut short. Cost per run is the mean over finished runs; spend totals include unfinished runs, archived retry recordings and documented cost adjustments. These are recorded estimates, not provider billing statements.',
+  'Smoke-test suites (names starting with "smoke") are left out by default; folders starting with "_" other than _compare are scratch and never shown.',
+  'Rebuild this page with python agent\\index.py (add --include-smoke to show smoke tests). A suite\'s report and replays come from python agent\\report.py --suite <name>; a comparison from python agent\\report.py --compare a,b.',
+]) $('notes').append(el('li', null, line));
+</script>
+</body>
+</html>

@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spire benchmark · __TITLE__</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --wash: #f3f2ee;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: #232321;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --wash: #232321;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 16px 56px; }
+  h1 { font-size: 24px; margin: 0 0 4px; font-weight: 650; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-2); margin-bottom: 4px; }
+  .fine { color: var(--muted); font-size: 12px; margin-bottom: 22px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; position: relative; }
+  .card h2 { font-size: 16px; margin: 0 0 2px; font-weight: 650; }
+  .card .lede { color: var(--ink-2); font-size: 13px; margin: 0 0 12px; max-width: 760px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+  .two .card { margin-bottom: 0; }
+  .two { margin-bottom: 16px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  svg text { font: 11px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+  svg text.lab { fill: var(--ink-2); font-size: 12px; }
+  svg text.val { fill: var(--ink); font-size: 12px; font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 8px; padding: 0; list-style: none; font-size: 13px; color: var(--ink-2); }
+  .legend li { display: flex; align-items: center; gap: 7px; }
+  .key { width: 18px; height: 0; border-top: 3px solid; border-radius: 2px; display: inline-block; }
+  .sw { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+         padding: 8px 11px; font-size: 12px; box-shadow: 0 6px 18px rgba(0,0,0,.14); display: none; z-index: 5; min-width: 150px; }
+  .tip .t { color: var(--ink-2); margin-bottom: 4px; }
+  .tip .r { display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+  .tip .r b { font-weight: 650; min-width: 38px; }
+  .tip .r span.n { color: var(--muted); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-weight: 600; color: var(--ink-2); font-size: 12px; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+  td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  .scroll { overflow-x: auto; }
+  a { color: inherit; text-decoration-color: var(--axis); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--ink); }
+  .name { display: flex; align-items: center; gap: 8px; font-weight: 600; white-space: nowrap; }
+  .out { white-space: nowrap; }
+  .glyphs { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+  .glyphs span { display: inline-flex; align-items: center; gap: 6px; }
+  .note { color: var(--ink-2); font-size: 13px; }
+  .note li { margin-bottom: 4px; }
+  .warn { background: var(--wash); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--ink-2); margin-bottom: 16px; }
+  [hidden] { display: none !important; }
+  /* Small multiples: one panel per stage, each with the same axes. */
+  .multi { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px 20px; margin-bottom: 14px; }
+  .multi h3 { font-size: 13px; font-weight: 600; color: var(--ink-2); margin: 0 0 4px; }
+  td.grp { font-weight: 600; white-space: nowrap; vertical-align: top; border-bottom-color: var(--axis); }
+  tr.cut td { border-bottom-color: var(--axis); }
+  /* Comparison mode: line keys that show the dash pattern, and the "what changed" card. */
+  svg.lk { display: inline-block; width: 22px; height: 8px; flex: none; overflow: visible; }
+  .card h3.part { font-size: 14px; font-weight: 650; margin: 18px 0 6px; display: flex; align-items: center; gap: 8px; }
+  td.lead { color: var(--ink-2); white-space: nowrap; }
+  td.same { color: var(--muted); }
+  td.differs { color: var(--ink); font-weight: 600; }
+  td.sure { color: var(--ink-2); }
+  th .name { font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title"></h1>
+  <div class="sub" id="sub"></div>
+  <div class="fine" id="fine"></div>
+  <div class="warn" id="warn" hidden></div>
+
+  <div class="card" id="cardChange" hidden>
+    <h2>What changed between suites</h2>
+    <p class="lede" id="changeLede"></p>
+    <h3 class="part">What differed</h3>
+    <div class="scroll"><table id="changeSetup"></table></div>
+    <div id="changeModels"></div>
+  </div>
+
+  <div class="card">
+    <h2>Scorecard</h2>
+    <p class="lede" id="scoreLede">One row per model. Every model played the same seeded runs under the same prompt, tools and limits.</p>
+    <div class="scroll"><table id="score"></table></div>
+  </div>
+
+  <div class="card" id="cardPass">
+    <h2 id="passTitle">Pass@k</h2>
+    <p class="lede" id="passLede"></p>
+    <ul class="legend" id="legPass"></ul>
+    <div class="multi" id="passPanels"></div>
+    <div class="scroll"><table id="passTable"></table></div>
+    <div class="tip"></div>
+  </div>
+
+  <div class="card" id="cardSurv">
+    <h2>Chance of still being alive after each floor</h2>
+    <p class="lede">Each step down is a death on that floor. Runs stopped by a cap rather than by dying are marked with a tick where they left and stop counting from there.</p>
+    <ul class="legend" id="legSurv"></ul>
+    <svg id="surv" role="img" aria-label="Survival by floor for each model"></svg>
+    <div class="tip"></div>
+  </div>
+
+  <div class="two">
+    <div class="card" id="cardStage">
+      <h2>Stage by stage success</h2>
+      <p class="lede">Share of runs that cleared each act. The last bar is winning the whole run.</p>
+      <ul class="legend" id="legStage"></ul>
+      <svg id="stage" role="img" aria-label="Share of runs clearing each act, per model"></svg>
+      <div class="tip"></div>
+    </div>
+    <div class="card" id="cardHp">
+      <h2>Health left after each floor</h2>
+      <p class="lede">Median share of max HP among runs that survived the floor. Thin lines are individual runs.</p>
+      <ul class="legend" id="legHp"></ul>
+      <svg id="hp" role="img" aria-label="Median HP share after each floor, per model"></svg>
+      <div class="tip"></div>
+    </div>
+  </div>
+
+  <div class="card" id="cardSeeds">
+    <h2>Same seed, head to head</h2>
+    <p class="lede" id="seedsLede">One row per seed: every model started from the identical run, so each row is a direct comparison. Click a mark to open its replay.</p>
+    <ul class="legend" id="legSeeds"></ul>
+    <svg id="seeds" role="img" aria-label="Final floor of each model on each seed"></svg>
+    <div class="tip"></div>
+  </div>
+
+  <div class="card" id="cardDots">
+    <h2>Where each run ended</h2>
+    <p class="lede">One mark per run, placed at the last floor it reached; runs that ended on the same floor are stacked. Click a mark to open its replay.</p>
+    <svg id="dots" role="img" aria-label="Final floor of every run, by model"></svg>
+    <div class="glyphs" id="glyphs"></div>
+    <div class="tip"></div>
+  </div>
+
+  <div class="card">
+    <h2>Every run</h2>
+    <p class="lede">The same data as a table. Each replay shows the model's observation, recorded response or decision, commands sent and the game's answer, step by step.</p>
+    <div class="scroll"><table id="runs"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>How to read this</h2>
+    <ul class="note" id="notes"></ul>
+  </div>
+</div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const S = D.series, NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const sv = (tag, attrs, text) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (text != null) e.textContent = text; return e; };
+// Comparison mode (several suites on one page): a series is (suite, model). The model keeps
+// its hue (its slot in the suites' own reports); the suite is told apart by line style and
+// fill texture, never by a second hue: the latest suite is solid, earlier ones dashed/hatched.
+const COMPARE = D.compare || null, NSUITES = COMPARE ? COMPARE.suites.length : 1;
+const color = i => `var(--s${(((S[i] && S[i].hue != null) ? S[i].hue : i) % 8) + 1})`;   // fixed slot per series, in suite order
+const DASHES = ['6 4', '2 3', '10 3 2 3'];
+const earlier = i => !!(COMPARE && S[i] && S[i].suite_index < NSUITES - 1);
+const dash = i => earlier(i) ? DASHES[S[i].suite_index % DASHES.length] : null;
+const dashAttr = i => earlier(i) ? { 'stroke-dasharray': dash(i), 'stroke-linecap': 'butt' } : {};
+const fill = i => earlier(i) ? `url(#hatch${i})` : color(i);
+if (COMPARE) {
+  const defs = sv('svg', { width: 0, height: 0, 'aria-hidden': 'true', style: 'position:absolute;width:0;height:0' }), d = sv('defs');
+  S.forEach((s, i) => { if (!earlier(i)) return;
+    const p = sv('pattern', { id: 'hatch' + i, patternUnits: 'userSpaceOnUse', width: 5, height: 5, patternTransform: `rotate(${s.suite_index % 2 ? 135 : 45})` });
+    p.append(sv('rect', { width: 5, height: 5, fill: 'var(--surface)' }), sv('line', { x1: 1.5, y1: 0, x2: 1.5, y2: 5, stroke: color(i), 'stroke-width': 3 })); d.append(p); });
+  defs.append(d); document.body.prepend(defs);
+}
+function swatch(i) { const sw = el('span', 'sw');
+  if (!COMPARE) { sw.style.background = color(i); return sw; }
+  sw.style.background = earlier(i) ? `repeating-linear-gradient(${S[i].suite_index % 2 ? 135 : 45}deg, ${color(i)} 0 2px, transparent 2px 4px)` : color(i); return sw; }
+function lineKey(i) {
+  if (!COMPARE) { const k = el('span', 'key'); k.style.borderTopColor = color(i); return k; }
+  const k = sv('svg', { viewBox: '0 0 22 8', class: 'lk', 'aria-hidden': 'true' });
+  k.append(sv('line', { x1: 1.5, x2: 20.5, y1: 4, y2: 4, stroke: color(i), 'stroke-width': 3, 'stroke-linecap': 'round', ...dashAttr(i) })); return k; }
+const pct = v => v == null ? 'n/a' : Math.round(v * 100) + '%';
+const money = v => v == null ? 'n/a' : v === 0 ? '$0' : '$' + v.toFixed(v < 1 ? 3 : 2);
+const OUT = { victory: ['✓', 'Won'], defeat: ['✕', 'Died'], running: ['…', 'Still running'], request_limit: ['⏸', 'Hit request cap'],
+              cost_limit: ['⏸', 'Hit cost cap'], floor_limit: ['⏸', 'Hit floor cap'], stalled: ['⏸', 'Stalled'], refusal: ['⏸', 'Refused'],
+              interrupted: ['⏸', 'Interrupted'], abandoned: ['⏸', 'Abandoned'], bridge_error: ['⏸', 'Bridge error'], api_error: ['⏸', 'API error'] };
+const outText = o => (OUT[o] || ['⏸', o]).join(' ');
+const idx = key => S.findIndex(s => s.key === key);
+
+// ---- header
+const REPEATS = D.max_attempts > 1;                    // some model played some seed more than once
+const FULL = D.runs.length === S.length * D.seeds.length * D.max_attempts;   // every model has every attempt of every seed on file
+const key = r => r.key || (r.model + '|' + r.effort);
+const bySeedAttempt = (a, b) => String(a.seed ?? '').localeCompare(String(b.seed ?? '')) || a.attempt - b.attempt;
+const attemptsText = REPEATS ? ` × ${FULL ? '' : 'up to '}${D.max_attempts} attempts` : '';
+const seedsText = `${D.seeds.length} seed${D.seeds.length > 1 ? 's' : ''}`;
+const running = D.runs.filter(r => r.outcome === 'running').length;
+const fewest = Math.min(...S.map(s => s.runs));
+const warnings = [];
+const PROTOCOLS = D.protocols || ['tools'];   // recordings from before protocols existed are all tool-protocol runs
+if (!COMPARE) {
+  $('title').textContent = `Slay the Spire 2 benchmark · ${D.suite}`;
+  $('sub').textContent = `${D.runs.length} runs · ${S.length} model${S.length > 1 ? 's' : ''} × ${seedsText}${attemptsText} · ${D.character || '?'} at ascension ${D.ascension ?? 0}`;
+  if (running) warnings.push(`${running} run${running > 1 ? 's are' : ' is'} still in progress; this page shows them as cut short at their current floor.`);
+  if (fewest < 10) warnings.push(`Only ${fewest} run${fewest > 1 ? 's' : ''} per model at the least. Sampling uncertainty is large; treat the curves as exploratory, not a ranking.`);
+  if (PROTOCOLS.length > 1) warnings.push(`This suite mixes decision protocols (${PROTOCOLS.join(', ')}). Each protocol has its own prompt, so the same model under two protocols is two separate series (labelled "text protocol" for the System 1 text protocol): compare within a protocol, or read the gap between them as the effect of the protocol, not of the model.`);
+  if (D.harness_commits.length > 1) warnings.push('This suite contains multiple recorded harness revisions; individual runs retain their revision in the data.');
+  if (D.prompt_fingerprints.length > 1) warnings.push('Runs in this suite used more than one prompt version, so they are not strictly comparable.');
+} else {
+  const SU = COMPARE.suites, nModels = COMPARE.models.length;
+  $('title').textContent = `Slay the Spire 2 benchmark · ${COMPARE.name}`;
+  $('sub').textContent = `${D.runs.length} runs · ${nModels} model${nModels > 1 ? 's' : ''} × ${NSUITES} suites (${SU.map(s => s.label).join(' vs ')}) × ${seedsText}${attemptsText} · ${D.character || '?'} at ascension ${D.ascension ?? 0}`;
+  $('scoreLede').textContent = 'One row per model and suite. Within a suite every model played the same seeded runs under the same prompt, tools and limits; between suites the prompt, harness or limits differ on purpose (see above).';
+  const busy = SU.filter(s => s.running);
+  if (busy.length) warnings.push(`${busy.map(s => `${s.running} run${s.running > 1 ? 's' : ''} in ${s.label}`).join(' and ')} ${running > 1 ? 'are' : 'is'} still in progress; this page shows them as cut short at their current floor. Until a suite finishes its numbers are provisional and can swing either way: a run already past a stage counts as getting past it, while one still short of it is left out until it gets there or dies, and its floor counts where it is now.`);
+  if (fewest < 10) warnings.push(`Only ${fewest} run${fewest > 1 ? 's' : ''} per model and suite at the least. Sampling uncertainty is large; treat the curves as exploratory, not a ranking.`);
+  // Several prompt versions on one page are the point of a comparison, not a fault.
+  if (new Set(SU.map(s => JSON.stringify(s.limits))).size > 1) warnings.push('Run limits differ between suites. Cost caps can censor models at different points; this comparison does not isolate model quality.');
+  if (new Set(SU.map(s => s.harness_commits.join(','))).size > 1) warnings.push('Harness revisions differ between suites; inspect the changes before attributing gaps to the models.');
+  const fp = SU.map(s => `${s.label}: ${s.prompt_fingerprints.join(', ') || '?'}`).join('; ');
+  warnings.push(`These suites differ by design (prompt ${fp}), so inspect setup differences alongside the results; gaps can combine model, harness, protocol and sampling effects.`);
+  const mixed = SU.filter(s => s.prompt_fingerprints.length > 1);
+  if (mixed.length) warnings.push(`Within ${mixed.map(s => s.label).join(' and ')}, runs used more than one prompt version, so ${mixed.length > 1 ? 'those suites are' : 'that suite is'} not internally consistent.`);
+}
+$('fine').textContent = `Game ${D.game_version || '?'} · protocol ${PROTOCOLS.join(', ')} · prompt ${D.prompt_fingerprints.join(', ') || '?'} · harness ${D.harness_commits.join(', ') || '?'} · seeds ${D.seeds.join(', ')}`;
+const infra = S.reduce((n, s) => n + (s.infrastructure_failures || 0), 0), behavior = S.reduce((n, s) => n + (s.behavioral_failures || 0), 0);
+if (infra || behavior) warnings.push(`${infra} infrastructure failures and ${behavior} stalled/refused runs are censored, not game deaths. Excluding them can inflate decided-run success rates; compare completion reliability as well as play quality.`);
+const audits = COMPARE ? COMPARE.suites.map(s => [s.label, s.cost_audit]).filter(x => x[1]) : D.cost_audit ? [[D.suite, D.cost_audit]] : [];
+for (const [label, a] of audits) if (a.retry_archive_usd || a.adjustments_usd) warnings.push(`${label}: total recorded/estimated spend ${money(a.total_recorded_usd)} includes ${money(a.scored_recordings_usd)} scored recordings, ${money(a.retry_archive_usd)} retry archives and ${money(a.adjustments_usd)} documented cost adjustments. Scorecard means use scored recordings only. ${a.adjustments.map(x => x.reason || '').join(' ')}`);
+if (warnings.length) { $('warn').hidden = false; $('warn').textContent = warnings.join(' '); }
+
+// ---- shared pieces
+function legend(id, kind) {
+  if (S.length < 2) return;   // one series: the title already names it
+  for (const [i, s] of S.entries()) { const li = el('li'); li.append(kind === 'bar' ? swatch(i) : lineKey(i), document.createTextNode(s.label)); $(id).append(li); }
+}
+// Direct labels at line ends: the value, then the series name (model, and in comparisons the suite under it).
+function endLabels(svg, ends, m, W, H, offset) {
+  const lines = COMPARE ? 2 : 1;
+  placeLabels(ends, 16 + 14 * lines, m.t + 6, H - m.b - 14 * lines);
+  for (const e of ends) { const lx = Math.min(e.x + offset, W - m.r + 12);
+    if (Math.abs(e.ly - e.y) > 3) svg.append(sv('line', { x1: e.x + 6, y1: e.y, x2: lx - 3, y2: e.ly - 4, stroke: 'var(--axis)', 'stroke-width': 1 }));
+    svg.append(sv('text', { x: lx, y: e.ly, class: 'val' }, pct(e.value)));
+    (e.s.lines || [e.s.label]).forEach((t, n) => svg.append(sv('text', n ? { x: lx, y: e.ly + 14 * (n + 1) } : { x: lx, y: e.ly + 14, class: 'lab' }, t))); }
+}
+// Whether end labels fit: no name wider than the room beside the plot, and every label stacked within the plot height.
+function labelsFit(room, m, H) {
+  const lines = COMPARE ? 2 : 1, gap = 16 + 14 * lines, lo = m.t + 6, hi = H - m.b - 14 * lines;
+  return S.length <= 4 && Math.max(...S.flatMap(s => s.lines || [s.label]).map(t => t.length)) * 6 <= room && (S.length - 1) * gap <= hi - lo;
+}
+function tipFor(cardId) {
+  const card = $(cardId), tip = card.querySelector('.tip');
+  return {
+    show(clientX, clientY, title, rows) {
+      tip.replaceChildren(el('div', 't', title));
+      for (const r of rows) { const row = el('div', 'r'); if (r.series != null) row.append(r.bar && COMPARE ? swatch(r.series) : lineKey(r.series)); else if (r.color) { const k = el('span', 'key'); k.style.borderTopColor = r.color; row.append(k); }
+        row.append(el('b', null, r.value), document.createTextNode(r.label)); if (r.note) row.append(el('span', 'n', r.note)); tip.append(row); }
+      tip.style.display = 'block';
+      const box = card.getBoundingClientRect(); let left = clientX - box.left + 14, top = clientY - box.top + 14;
+      if (left + tip.offsetWidth > box.width - 8) left = clientX - box.left - tip.offsetWidth - 14;
+      tip.style.left = Math.max(8, left) + 'px'; tip.style.top = Math.max(8, Math.min(top, box.height - tip.offsetHeight - 8)) + 'px';
+    },
+    hide() { tip.style.display = 'none'; },
+  };
+}
+function frame(svg, W, H, m, yTicks, yFmt, xMax, xLabel) {
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const x = v => m.l + v / xMax * (W - m.l - m.r), y = v => m.t + (1 - v) * (H - m.t - m.b);
+  for (const v of yTicks) { svg.append(sv('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1 }));
+    svg.append(sv('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, yFmt(v))); }
+  if (xMax != null) {
+    const stepSize = xMax > 30 ? 5 : xMax > 12 ? 2 : 1;
+    for (let f = 0; f <= xMax; f += stepSize) { if (f === 0) continue; svg.append(sv('line', { x1: x(f), x2: x(f), y1: y(0), y2: y(0) + 4, stroke: 'var(--axis)', 'stroke-width': 1 })); svg.append(sv('text', { x: x(f), y: y(0) + 17, 'text-anchor': 'middle' }, f)); }
+    if (xLabel) svg.append(sv('text', { x: (m.l + W - m.r) / 2, y: H - 2, 'text-anchor': 'middle' }, xLabel));
+    for (const a of D.act_starts) { if (a.act < 2 || a.floor > xMax) continue; const ax = x(a.floor - 0.5);
+      svg.append(sv('line', { x1: ax, x2: ax, y1: m.t - 4, y2: y(0), stroke: 'var(--axis)', 'stroke-width': 1 })); svg.append(sv('text', { x: ax + 5, y: m.t + 4 }, 'Act ' + a.act)); }
+  }
+  return { x, y };
+}
+// Spread end labels apart when lines finish close together, keeping each next to its line end.
+function placeLabels(items, minGap, lo, hi) {
+  items.sort((a, b) => a.y - b.y); let prev = -Infinity;
+  for (const it of items) { it.ly = Math.max(it.y, prev + minGap, lo); prev = it.ly; }
+  let over = prev - hi; for (let i = items.length - 1; i >= 0 && over > 0; i--) { items[i].ly -= over; if (i > 0) over = items[i - 1].ly + minGap - items[i].ly; }
+}
+
+// ---- what changed between suites (comparisons only)
+if (COMPARE) (function () {
+  const SU = COMPARE.suites, base = SU[0], later = SU.slice(1), N = COMPARE.noise;
+  $('cardChange').hidden = false;
+  const sign = v => v > 0 ? '+' : v < 0 ? '−' : '';
+  const num = v => String(Math.round(v * 10) / 10);
+  const pts = v => `${sign(v)}${Math.round(Math.abs(v) * 100)} pts`;
+  const range = ci => `${sign(ci[0])}${Math.round(Math.abs(ci[0]) * 100)} to ${sign(ci[1])}${Math.round(Math.abs(ci[1]) * 100)} pts`;
+  $('changeLede').textContent = `Each model's results in ${SU.map(s => s.label).join(' and ')}, side by side. ${later.length > 1 ? 'Each change column is that suite' : 'Change is ' + later[0].label} minus ${base.label}. Success rate is the pooled share of decided attempts that got past the stage. Attempts cut short before it are left out; seeds with more decided attempts have more weight. The pass@k panel separately averages seeds equally.`
+    + (N ? ` With ${N.n} decided runs, a single result moves the pooled rate by ${Math.round(100 / N.n)} percentage points. Intervals are descriptive and do not adjust for shared seeds or multiple comparisons.` : '');
+
+  // What was different about the suites, attribute by attribute.
+  const lim = l => [l.max_requests != null ? `${l.max_requests} requests` : null, l.max_cost != null ? `$${l.max_cost}` : null, l.max_floor != null ? `floor ${l.max_floor}` : 'no floor cap'].filter(Boolean).join(', ');
+  const setup = [
+    ['Suite folder', s => s.name, false],
+    ['Prompt fingerprint', s => s.prompt_fingerprints.join(', ') || '?', true],
+    ['Decision protocol', s => (s.protocols || ['tools']).join(', '), true],
+    ['Playbook', s => s.playbooks.join(', ') || 'none', true],
+    ['Harness commit', s => (s.harness_commits.join(', ') || '?') + (s.harness_version ? ` (harness ${s.harness_version})` : ''), true],
+    ['Seeds', s => s.seeds.join(', '), true],
+    ['Attempts per seed', s => s.planned_attempts && s.planned_attempts !== s.attempts ? `${s.planned_attempts} planned, up to ${s.attempts} on file` : String(s.attempts), true],
+    ['Runs on file', s => `${s.runs}${s.running ? `, ${s.running} still playing` : ''}`, false],
+    ['Models', s => s.models.join(', '), true],
+    ['Limits per run', s => s.limits.map(lim).join('; ') || '?', true],
+    ['Game version', s => s.game_versions.join(', ') || '?', true],
+    ['Character', s => `${s.characters.join(', ') || '?'} at ascension ${s.ascensions.join(', ') || '0'}`, true],
+  ];
+  const t = $('changeSetup'), head = el('tr'); head.append(el('th', null, ''));
+  for (const s of SU) head.append(el('th', null, s.label)); head.append(el('th', null, '')); t.append(head);
+  for (const [label, f, check] of setup) { const tr = el('tr'), vals = SU.map(f), same = vals.every(v => v === vals[0]);
+    tr.append(el('td', 'lead', label)); for (const v of vals) tr.append(el('td', null, v));
+    tr.append(check ? el('td', same ? 'same' : 'differs', same ? 'same' : 'differs') : el('td')); t.append(tr); }
+  const fpDiffer = new Set(SU.map(s => s.prompt_fingerprints.join(','))).size > 1, pbSame = new Set(SU.map(s => s.playbooks.join(','))).size === 1;
+  if (fpDiffer && pbSame) $('changeModels').append(el('p', 'note', 'The playbook keeps its name when its text is revised. The prompt fingerprint covers the system prompt, tools and playbook text, so a different fingerprint under the same playbook name means that text changed.'));
+
+  // Each model, measure by measure.
+  const cell = (row, v) => {
+    if (v == null) return 'not played';
+    if (row.kind === 'stage') return v.decided ? `${v.cleared} of ${v.decided} · ${pct(v.pass1)}` : 'none decided yet';
+    if (v.value == null) return 'n/a';
+    if (row.kind === 'floor') return v.q1 != null ? `${num(v.value)} (${num(v.q1)}–${num(v.q3)})` : num(v.value);
+    if (row.kind === 'cost') return money(v.value);
+    return num(v.value);
+  };
+  const change = (row, d) => {
+    if (d == null) return '–';
+    if (row.kind === 'stage') return pts(d.d);
+    const rel = d.rel != null ? ` (${sign(d.rel)}${Math.round(Math.abs(d.rel) * 100)}%)` : '';
+    if (row.kind === 'floor') return `${sign(d.d)}${num(Math.abs(d.d))} floor${Math.abs(d.d) === 1 ? '' : 's'}`;
+    if (row.kind === 'cost') return `${sign(d.d)}${money(Math.abs(d.d))}${rel}`;
+    return `${sign(d.d)}${num(Math.abs(d.d))}${rel}`;
+  };
+  const sure = (row, d, v0, v1, j) => {
+    if (row.kind === 'stage') {
+      if (d == null || !d.ci) return v0 && v1 ? 'Not enough decided runs yet' : '–';
+      const k = v1.cleared - v0.cleared, n = v0.decided;
+      const runs = v0.decided === v1.decided ? (k === 0 ? `same count of ${n}` : `${Math.abs(k)} run${Math.abs(k) > 1 ? 's' : ''} ${k > 0 ? 'more' : 'fewer'} of ${n}`) : `${v0.cleared} of ${v0.decided} against ${v1.cleared} of ${v1.decided}`;
+      const noise = d.ci[0] <= 0 && d.ci[1] >= 0, busy = SU[0].running || SU[j].running;
+      return `${noise ? (d.d === 0 ? 'No gap' : 'Interval includes zero') : 'Unadjusted interval excludes zero'} (${runs}; 95% descriptive range ${range(d.ci)}; not adjusted for paired seeds or multiple comparisons)${busy && !noise ? '. Provisional: runs are still playing, and the ones decided so far are not a random sample' : busy ? '. Provisional: runs are still playing' : ''}`;
+    }
+    if (d == null) return '–';
+    if (row.label.startsWith('Median')) return v0.q1 <= v1.q3 && v1.q1 <= v0.q3 ? 'Middle halves overlap: not a clear gap' : 'Middle halves do not overlap';
+    if (row.label.startsWith('Best')) return 'One run each, so very noisy';
+    const caps = row.kind === 'cost' && JSON.stringify(SU[0].limits) !== JSON.stringify(SU[j].limits) ? '; the per-run limits differ (above)' : '';
+    return `Mean over ${v0.n} and ${v1.n} finished runs${caps}`;
+  };
+  const sIdx = k => k == null ? -1 : S.findIndex(s => s.key === k);
+  for (const mdl of COMPARE.models) {
+    const h = el('h3', 'part'), solid = sIdx([...mdl.series].reverse().find(k => k != null));
+    h.append(swatch(solid), document.createTextNode(mdl.label)); $('changeModels').append(h);
+    const t = el('table'), head = el('tr'); head.append(el('th', null, 'Measure'));
+    mdl.series.forEach((k, j) => { const th = el('th', 'num'), w = el('div', 'name'); w.style.justifyContent = 'flex-end'; if (sIdx(k) >= 0) w.append(lineKey(sIdx(k))); w.append(document.createTextNode(SU[j].label)); th.append(w); head.append(th); });
+    for (const s of later) head.append(el('th', 'num', later.length > 1 ? `${s.label} − ${base.label}` : 'Change'), el('th', null, 'How sure'));
+    t.append(head);
+    for (const row of mdl.rows) { const tr = el('tr');
+      tr.append(el('td', 'lead', row.kind === 'stage' ? `${row.label} (success rate)` : row.label + (row.label.startsWith('Median') ? ' (middle half)' : '')));
+      row.values.forEach(v => tr.append(el('td', 'num', cell(row, v))));
+      row.diffs.forEach((d, n) => tr.append(el('td', 'num', change(row, d)), el('td', 'sure', sure(row, d, row.values[0], row.values[n + 1], n + 1))));
+      t.append(tr); }
+    const wrap = el('div', 'scroll'); wrap.append(t); $('changeModels').append(wrap);
+  }
+})();
+
+// ---- scorecard
+(function () {
+  const t = $('score'), head = el('tr');
+  for (const [h, n] of [['Model', 0], ['Runs', 1], ['Won', 1], ['Died', 1], ['Cut short', 1], ['API/game errors', 1], ['Stalled/refused', 1], ['Rejected act calls', 1], ['Tool errors', 1], ['Best floor', 1], ['Median floor', 1], ['Mean floor', 1], ['Floor range', 1], ['Cost per run', 1], ['Requests per floor', 1], ['Seconds per request', 1]]) head.append(el('th', n ? 'num' : null, h));
+  t.append(head);
+  S.forEach((s, i) => { const tr = el('tr'), name = el('td'), wrap = el('div', 'name'), sw = swatch(i); wrap.append(sw, document.createTextNode(s.label)); name.append(wrap); tr.append(name);
+    const f = s.floors;
+    // Wins are counted out of every run on file, so the row adds up: won + died + cut short = runs.
+    for (const v of [s.runs, `${s.wins} of ${s.runs}`, s.deaths, s.cut_short, s.infrastructure_failures || 0, s.behavioral_failures || 0, `${s.rejected_action_calls || 0}/${s.action_calls || 0} (${pct(s.rejected_action_rate)})`, s.tool_error_calls || 0, f.best, f.median, f.mean.toFixed(1), f.min === f.max ? f.min : `${f.min}–${f.max}`, money(s.mean_cost), s.requests_per_floor, s.seconds_per_request]) tr.append(el('td', 'num', String(v))); t.append(tr); });
+})();
+
+// ---- pass@k: chance that at least one of k tries got past each stage
+(function () {
+  const byAttempt = D.pass_k_unit === 'attempt', manySeeds = D.seeds.length > 1, stages = S[0].pass_k;
+  const K = Math.max(0, ...S.flatMap(s => s.pass_k.map(p => p.k_max)));
+  if (byAttempt) {
+    $('passTitle').textContent = 'Pass@k: getting past each stage at least once in k attempts';
+    $('passLede').textContent = `${COMPARE ? 'In each suite, every model' : 'Every model'} played ${manySeeds ? 'each seed' : 'the same seed'} ${FULL ? '' : 'up to '}${D.max_attempts} times. Pass@k is the chance that at least one of k of those attempts, drawn at random, got past the stage: pass@1 is the plain success rate, and the climb from there is what repeated tries buy.${manySeeds ? ' Each value is worked out per seed and then averaged over seeds.' : ''} Attempts cut short before a stage are excluded. A curve is withheld when any observed seed has no decided attempts; otherwise dropping that seed would change the comparison.`;
+  } else {
+    $('passTitle').textContent = 'Getting past each stage on at least one of k seeds';
+    $('passLede').textContent = 'No seed has been played more than once, so there is no pass@k yet: that needs repeated attempts at the same seed. The table shows the nearest thing this data supports, the chance that at least one of k different seeds, drawn at random from those played, got past each stage. It mixes how hard the seeds are with how reliable the model is, so it is a rough guide and not a pass@k. Runs cut short before a stage are left out.';
+    $('legPass').hidden = $('passPanels').hidden = true;
+  }
+
+  if (byAttempt && K >= 1) {
+    legend('legPass', 'line');
+    // End labels only where the longest model name fits beside the plot; otherwise the legend and tooltip carry identity.
+    // In comparisons a suite still filling in ends its lines mid-panel, where labels would sit on the other lines.
+    const H = 232, fits = labelsFit(100, { t: 12, b: 38 }, H) && (!COMPARE || S.every(s => s.pass_k.every(p => !p.k_max || p.k_max === K)));
+    const W = 330, m = { l: 38, r: fits ? 112 : 14, t: 12, b: 38 }, pad = 10, pw = W - m.l - m.r - pad;
+    const x = k => m.l + pad + (K > 1 ? (k - 1) / (K - 1) : .5) * pw, y = v => m.t + (1 - v) * (H - m.t - m.b);
+    const every = K <= 12 ? 1 : K <= 30 ? 5 : 10, tip = tipFor('cardPass'), panels = [];
+    const hideAll = () => { tip.hide(); for (const p of panels) { p.cross.setAttribute('visibility', 'hidden'); for (const d of p.dots) if (d) d.setAttribute('visibility', 'hidden'); } };
+    stages.forEach((st, g) => {
+      const box = el('div'), svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `${st.stage}: pass@k against k, per model` });
+      box.append(el('h3', null, st.stage), svg); $('passPanels').append(box);
+      for (const v of [0, .25, .5, .75, 1]) { svg.append(sv('line', { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: v === 0 ? 'var(--axis)' : 'var(--grid)', 'stroke-width': 1 }));
+        svg.append(sv('text', { x: m.l - 8, y: y(v) + 4, 'text-anchor': 'end' }, pct(v))); }
+      for (let k = 1; k <= K; k++) { if (k !== 1 && k % every) continue; svg.append(sv('line', { x1: x(k), x2: x(k), y1: y(0), y2: y(0) + 4, stroke: 'var(--axis)', 'stroke-width': 1 })); svg.append(sv('text', { x: x(k), y: y(0) + 17, 'text-anchor': 'middle' }, k)); }
+      svg.append(sv('text', { x: m.l + pad + pw / 2, y: H - 3, 'text-anchor': 'middle' }, 'k attempts'));
+      const cross = sv('line', { y1: m.t, y2: y(0), stroke: 'var(--ink-2)', 'stroke-width': 1, visibility: 'hidden' }); svg.append(cross);
+      const ends = [], dots = S.map(() => null);
+      S.forEach((s, i) => { const p = s.pass_k[g];
+        if (!p.k_max) return;      // nothing decided for this stage yet: no line
+        // Overlapping lines are nudged a pixel or two apart so every model stays visible.
+        const dy = (i - (S.length - 1) / 2) * 2.5, last = p.curve[p.k_max - 1];
+        svg.append(sv('path', { d: 'M' + p.curve.map((v, k) => `${x(k + 1).toFixed(1)} ${(y(v) + dy).toFixed(1)}`).join(' L'), fill: 'none', stroke: color(i), 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', ...dashAttr(i) }));
+        svg.append(sv('circle', { cx: x(p.k_max), cy: y(last) + dy, r: 4.5, fill: color(i), stroke: 'var(--surface)', 'stroke-width': 2 }));
+        ends.push({ i, s, x: x(p.k_max), y: y(last) + dy, last });
+      });
+      S.forEach((s, i) => { if (!s.pass_k[g].k_max) return; const d = sv('circle', { r: 4.5, fill: color(i), stroke: 'var(--surface)', 'stroke-width': 2, visibility: 'hidden' }); dots[i] = d; svg.append(d); });
+      if (fits) endLabels(svg, ends.map(e => ({ ...e, value: e.last })), m, W, H, 12);
+      panels.push({ cross, dots });
+      svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W;
+        const k = Math.max(1, Math.min(K, K > 1 ? Math.round((px - m.l - pad) / pw * (K - 1)) + 1 : 1));
+        // The crosshair moves in every panel, so the same k can be read across stages.
+        panels.forEach((p, pg) => { p.cross.setAttribute('x1', x(k)); p.cross.setAttribute('x2', x(k)); p.cross.setAttribute('visibility', 'visible');
+          S.forEach((s, i) => { const d = p.dots[i], q = s.pass_k[pg]; if (!d) return;
+            if (k > q.k_max) { d.setAttribute('visibility', 'hidden'); return; }
+            d.setAttribute('cx', x(k)); d.setAttribute('cy', y(q.curve[k - 1]) + (i - (S.length - 1) / 2) * 2.5); d.setAttribute('visibility', 'visible'); }); });
+        tip.show(e.clientX, e.clientY, `${st.stage} · at least once in ${k} attempt${k > 1 ? 's' : ''}`, S.map((s, i) => { const q = s.pass_k[g];
+          return { series: i, value: k <= q.k_max ? pct(q.curve[k - 1]) : '—', label: s.label,
+            note: !q.decided ? ' · no decided attempts yet' : ` · ${q.cleared} of ${q.decided} attempts got past it` + (k <= q.k_max ? '' : manySeeds ? `; one seed has only ${q.k_max} decided` : `, too few for k = ${k}`) }; })); });
+      svg.addEventListener('pointerleave', hideAll);
+    });
+  }
+
+  // The same numbers as a table: stage by stage, models side by side.
+  const cols = [1, 2, 3, 5, 10, 20, 50, 100].filter(k => k <= K && (k === 1 || (K < 5 ? k < 5 : k >= 5)));
+  const t = $('passTable'), head = el('tr');
+  head.append(el('th', null, 'Stage'), el('th', null, 'Model'), el('th', 'num', `Got past it / decided ${byAttempt ? 'attempts' : 'seeds'}`));
+  for (const k of cols) head.append(el('th', 'num', byAttempt ? 'pass@' + k : k === 1 ? '1 seed' : `any of ${k} seeds`));
+  t.append(head);
+  stages.forEach((st, g) => S.forEach((s, i) => { const p = s.pass_k[g], tr = el('tr', i === S.length - 1 && g < stages.length - 1 ? 'cut' : null);
+    if (i === 0) { const stage = el('td', 'grp', st.stage); stage.rowSpan = S.length; if (g === stages.length - 1) stage.style.borderBottom = '0'; tr.append(stage); }
+    const name = el('td'), wrap = el('div', 'name'), sw = swatch(i); wrap.append(sw, document.createTextNode(s.label)); name.append(wrap);
+    tr.append(name, el('td', 'num', `${p.cleared} of ${p.decided}`));
+    for (const k of cols) tr.append(el('td', 'num', k <= p.k_max ? pct(p.curve[k - 1]) : '–'));
+    t.append(tr); }));
+})();
+
+// ---- survival curve
+(function () {
+  const svg = $('surv'), W = 1000, H = 380, m = { l: 46, r: 150, t: 22, b: 40 }, xMax = Math.max(1, D.max_floor);
+  const { x, y } = frame(svg, W, H, m, [0, .25, .5, .75, 1], pct, xMax, 'Floor');
+  legend('legSurv', 'line');
+  const ends = [];
+  S.forEach((s, i) => {
+    // Overlapping curves are nudged a pixel or two apart so every model stays visible.
+    const dy = (i - (S.length - 1) / 2) * 2.5, pts = s.survival.curve.filter(p => p.alive != null);
+    let d = '', prev = 1;
+    pts.forEach((p, k) => { if (k === 0) { d = `M${x(0)} ${y(1) + dy}`; return; } d += ` L${x(p.floor)} ${y(prev) + dy} L${x(p.floor)} ${y(p.alive) + dy}`; prev = p.alive; });
+    svg.append(sv('path', { d, fill: 'none', stroke: color(i), 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', ...dashAttr(i) }));
+    for (const c of s.survival.censored) svg.append(sv('line', { x1: x(c.floor), x2: x(c.floor), y1: y(c.alive) + dy - 6, y2: y(c.alive) + dy + 6, stroke: color(i), 'stroke-width': 2, 'stroke-linecap': 'round' }));
+    const last = pts[pts.length - 1];
+    svg.append(sv('circle', { cx: x(last.floor), cy: y(last.alive) + dy, r: 5, fill: color(i), stroke: 'var(--surface)', 'stroke-width': 2 }));
+    ends.push({ i, s, x: x(last.floor), y: y(last.alive) + dy, last });
+  });
+  if (COMPARE ? labelsFit(m.r - 14, m, H) : S.length <= 4) endLabels(svg, ends.map(e => ({ ...e, value: e.last.alive })), m, W, H, 14);
+  const cross = sv('line', { y1: m.t, y2: y(0), stroke: 'var(--ink-2)', 'stroke-width': 1, visibility: 'hidden' }); svg.append(cross);
+  const tip = tipFor('cardSurv');
+  svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W;
+    const f = Math.max(0, Math.min(xMax, Math.round((px - m.l) / (W - m.l - m.r) * xMax)));
+    cross.setAttribute('x1', x(f)); cross.setAttribute('x2', x(f)); cross.setAttribute('visibility', 'visible');
+    tip.show(e.clientX, e.clientY, f === 0 ? 'Start of the run' : `After floor ${f}`, S.map((s, i) => { const p = s.survival.curve[f];
+      return { series: i, value: p && p.alive != null ? pct(p.alive) : '—', label: s.label, note: p ? ` · ${p.at_risk} still playing` : '' }; })); });
+  svg.addEventListener('pointerleave', () => { tip.hide(); cross.setAttribute('visibility', 'hidden'); });
+})();
+
+// ---- stage bars
+(function () {
+  const svg = $('stage'), W = 480, H = 300, m = { l: 40, r: 8, t: 22, b: 40 };
+  const { y } = frame(svg, W, H, m, [0, .25, .5, .75, 1], pct, null);
+  legend('legStage', 'bar');
+  const stages = S[0].stages, groupW = (W - m.l - m.r) / stages.length, barW = Math.min(24, (groupW - 24) / S.length - 2), tip = tipFor('cardStage');
+  // In comparisons each model's suites sit together, with a little more room between models.
+  const shift = i => COMPARE ? S.slice(1, i + 1).filter((s, n) => s.hue !== S[n].hue).length * 6 : 0;
+  stages.forEach((st, g) => {
+    const cx = m.l + groupW * (g + .5), total = S.length * barW + (S.length - 1) * 2 + shift(S.length - 1);
+    svg.append(sv('text', { x: cx, y: H - m.b + 18, 'text-anchor': 'middle', class: 'lab' }, st.stage));
+    S.forEach((s, i) => { const v = s.stages[g], bx = cx - total / 2 + i * (barW + 2) + shift(i), base = y(0);
+      const hit = sv('rect', { x: bx - 1, y: m.t, width: barW + 2, height: base - m.t, fill: 'transparent' });
+      if (v.rate == null) svg.append(sv('text', { x: bx + barW / 2, y: base - 6, 'text-anchor': 'middle' }, '–'));
+      else { const top = y(v.rate), h = Math.max(0, base - top), r = Math.min(4, h, barW / 2);
+        // Rounded at the data end, square on the baseline.
+        const bar = sv('path', { d: h < 1 ? `M${bx} ${base - 1.5} h${barW} v1.5 h${-barW} Z` : `M${bx} ${base} V${top + r} Q${bx} ${top} ${bx + r} ${top} H${bx + barW - r} Q${bx + barW} ${top} ${bx + barW} ${top + r} V${base} Z`, fill: h < 1 ? color(i) : fill(i) });
+        svg.append(bar); svg.append(sv('text', { x: bx + barW / 2, y: top - 6, 'text-anchor': 'middle', class: 'val' }, pct(v.rate)));
+        hit.addEventListener('pointerenter', () => bar.setAttribute('opacity', .8)); hit.addEventListener('pointerleave', () => bar.setAttribute('opacity', 1)); }
+      hit.addEventListener('pointermove', e => tip.show(e.clientX, e.clientY, st.stage, [{ series: i, bar: true, value: pct(v.rate), label: s.label, note: ` · ${v.cleared} of ${v.decided} decided runs` }]));
+      hit.addEventListener('pointerleave', () => tip.hide()); svg.append(hit); });
+  });
+})();
+
+// ---- HP after each floor
+(function () {
+  const svg = $('hp'), W = 480, H = 300, m = { l: 40, r: 10, t: 22, b: 40 }, xMax = Math.max(1, D.max_floor);
+  const { x, y } = frame(svg, W, H, m, [0, .25, .5, .75, 1], pct, xMax, 'Floor');
+  legend('legHp', 'line');
+  for (const r of D.runs) { const i = idx(key(r)); const pts = r.floors.filter(f => f.max_hp).map(f => `${x(f.floor).toFixed(1)} ${y(f.hp / f.max_hp).toFixed(1)}`);
+    if (pts.length > 1) svg.append(sv('path', { d: 'M' + pts.join(' L'), fill: 'none', stroke: color(i), 'stroke-width': 1, opacity: .3, 'stroke-linejoin': 'round' })); }
+  S.forEach((s, i) => { const pts = s.hp.filter(p => p.median != null).map(p => `${x(p.floor).toFixed(1)} ${y(p.median).toFixed(1)}`);
+    if (pts.length) svg.append(sv('path', { d: 'M' + pts.join(' L'), fill: 'none', stroke: color(i), 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', ...dashAttr(i) })); });
+  const cross = sv('line', { y1: m.t, y2: y(0), stroke: 'var(--ink-2)', 'stroke-width': 1, visibility: 'hidden' }); svg.append(cross);
+  const tip = tipFor('cardHp');
+  svg.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(), px = (e.clientX - r.left) / r.width * W;
+    const f = Math.max(1, Math.min(xMax, Math.round((px - m.l) / (W - m.l - m.r) * xMax)));
+    cross.setAttribute('x1', x(f)); cross.setAttribute('x2', x(f)); cross.setAttribute('visibility', 'visible');
+    tip.show(e.clientX, e.clientY, `After floor ${f}`, S.map((s, i) => { const p = s.hp[f - 1]; return { series: i, value: p && p.median != null ? pct(p.median) : '—', label: s.label, note: p ? ` · ${p.n} run${p.n === 1 ? '' : 's'}` : '' }; })); });
+  svg.addEventListener('pointerleave', () => { tip.hide(); cross.setAttribute('visibility', 'hidden'); });
+})();
+
+// ---- one mark per run, laid out in labelled rows along a shared floor axis
+// rows: [{ label, runs, header?, connect?, median?, minH }]. Marks that share a floor are stacked, and a row
+// grows to fit its tallest stack, so no mark hides another however many attempts land on one floor.
+function runStrip(svgId, cardId, rows) {
+  const svg = $(svgId), W = 1000, m = { l: 150, r: 20, t: 34, b: 40 }, xMax = Math.max(1, D.max_floor);
+  const x = v => m.l + v / xMax * (W - m.l - m.r), floorPx = (W - m.l - m.r) / xMax, tip = tipFor(cardId);
+  let top = m.t;
+  for (const row of rows) {
+    row.stacks = new Map();
+    for (const r of row.runs) { if (!row.stacks.has(r.final_floor)) row.stacks.set(r.final_floor, []); row.stacks.get(r.final_floor).push(r); }
+    const tallest = Math.max(1, ...[...row.stacks.values()].map(st => st.length));
+    row.pitch = tallest > 16 ? 10 : 13;                      // very tall stacks use smaller marks
+    row.h = Math.max(row.minH, tallest * row.pitch + 12);
+    if (row.header) { top += row === rows[0] ? 16 : 26; row.headerY = top - 6; }
+    row.cy = top + row.h / 2; top += row.h;
+  }
+  const base = top + 4, H = base + m.b;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.append(sv('line', { x1: m.l, x2: W - m.r, y1: base, y2: base, stroke: 'var(--axis)', 'stroke-width': 1 }));
+  const stepSize = xMax > 30 ? 5 : xMax > 12 ? 2 : 1;
+  for (let f = stepSize; f <= xMax; f += stepSize) { svg.append(sv('line', { x1: x(f), x2: x(f), y1: m.t, y2: base, stroke: 'var(--grid)', 'stroke-width': 1 })); svg.append(sv('text', { x: x(f), y: base + 17, 'text-anchor': 'middle' }, f)); }
+  svg.append(sv('text', { x: (m.l + W - m.r) / 2, y: H - 2, 'text-anchor': 'middle' }, 'Last floor reached'));
+  // Act labels sit above the rows, clear of the marks.
+  for (const a of D.act_starts) { if (a.act < 2 || a.floor > xMax) continue; const ax = x(a.floor - 0.5); svg.append(sv('line', { x1: ax, x2: ax, y1: m.t - 20, y2: base, stroke: 'var(--axis)', 'stroke-width': 1 })); svg.append(sv('text', { x: ax + 5, y: m.t - 10 }, 'Act ' + a.act)); }
+  for (const row of rows) { const cy = row.cy, small = row.pitch < 13;
+    if (row.header) svg.append(sv('text', { x: m.l - 12, y: row.headerY, 'text-anchor': 'end', class: 'val' }, row.header));
+    if (row.sub) { svg.append(sv('text', { x: m.l - 12, y: cy - 2, 'text-anchor': 'end', class: 'lab' }, row.label)); svg.append(sv('text', { x: m.l - 12, y: cy + 11, 'text-anchor': 'end' }, row.sub)); }
+    else svg.append(sv('text', { x: m.l - 12, y: cy + 4, 'text-anchor': 'end', class: 'lab' }, row.label));
+    const fs = row.runs.map(r => r.final_floor).sort((a, b) => a - b);
+    if (row.connect && fs.length > 1) svg.append(sv('line', { x1: x(fs[0]), x2: x(fs[fs.length - 1]), y1: cy, y2: cy, stroke: 'var(--axis)', 'stroke-width': 2, 'stroke-linecap': 'round' }));
+    if (row.median && fs.length > 1) { const med = (fs[(fs.length - 1) >> 1] + fs[fs.length >> 1]) / 2;
+      svg.append(sv('line', { x1: x(med), x2: x(med), y1: cy - row.h / 2 + 1, y2: cy + row.h / 2 - 1, stroke: 'var(--ink-2)', 'stroke-width': 2, 'stroke-linecap': 'round' })); }
+    for (const [floor, stack] of row.stacks) stack.forEach((r, n) => { const i = idx(key(r)), px = x(floor), py = cy + (n - (stack.length - 1) / 2) * row.pitch;
+      const which = `seed ${r.seed}${REPEATS ? `, attempt ${r.attempt}` : ''}`;
+      const a = sv('a', { href: r.replay, target: '_blank', 'aria-label': `${r.series}, ${which}: ${outText(r.outcome)} on floor ${r.final_floor}. Open replay.` });
+      let mark; const d = small ? 4 : 5;
+      if (r.outcome === 'victory') mark = sv('rect', { x: px - d, y: py - d, width: 2 * d, height: 2 * d, transform: `rotate(45 ${px} ${py})`, fill: color(i), stroke: 'var(--surface)', 'stroke-width': 2 });
+      else if (r.outcome === 'defeat') mark = sv('circle', { cx: px, cy: py, r: d + .5, fill: color(i), stroke: 'var(--surface)', 'stroke-width': 2 });
+      else mark = sv('circle', { cx: px, cy: py, r: d - .5, fill: 'var(--surface)', stroke: color(i), 'stroke-width': 2 });
+      // Hit areas are larger than the marks but never reach into a neighbour's: one slot of the stack tall, at most one floor wide.
+      const hw = Math.max(row.pitch, Math.min(26, floorPx)), hh = stack.length > 1 ? row.pitch : Math.min(26, row.h);
+      const hit = sv('rect', { x: px - hw / 2, y: py - hh / 2, width: hw, height: hh, fill: 'transparent' });
+      hit.addEventListener('pointermove', e => tip.show(e.clientX, e.clientY, `${r.series} · ${which.replace(',', ' ·')}`, [{ value: `Floor ${r.final_floor}`, label: outText(r.outcome) }, { value: `${r.hp_end ?? '?'}/${r.max_hp_end ?? '?'}`, label: 'HP at the end' }, { value: money(r.cost), label: `${r.requests} requests` }]));
+      hit.addEventListener('pointerenter', () => mark.setAttribute('opacity', .75)); hit.addEventListener('pointerleave', () => { mark.setAttribute('opacity', 1); tip.hide(); });
+      a.append(mark, hit); svg.append(a); }); }
+}
+const runsOf = (seed, s) => D.runs.filter(r => (seed == null || r.seed === seed) && (s == null || key(r) === s.key)).sort((a, b) => idx(key(a)) - idx(key(b)) || bySeedAttempt(a, b));
+legend('legSeeds', 'bar');
+if (COMPARE) {
+  // Comparisons: a band per seed, a row per series (model, then suite), so each model's suites sit next to each other.
+  $('seedsLede').textContent = `One band per seed with a row per model and suite. Within a suite every attempt started from the identical run${D.seeds.length > 1 ? '; a suite that did not play a seed has no row in its band' : ''}, and the same seed is the same starting run in every suite, so neighbouring rows show what the change did to the same model on the same run. The bar spans the lowest to highest last floor, the upright tick marks the median, and attempts that ended on the same floor are stacked. Click a mark to open its replay.`;
+  runStrip('seeds', 'cardSeeds', D.seeds.flatMap(seed => S.map(s => ({ s, runs: runsOf(seed, s) })).filter(o => o.runs.length)
+    .map((o, n) => ({ header: n === 0 ? 'Seed ' + seed : null, label: o.s.model_label, sub: o.s.suite_label, runs: o.runs, connect: true, median: true, minH: 34 }))));
+} else if (REPEATS) {
+  // Same seed, repeated attempts: a band per seed with a row per model, each with its range and median.
+  $('seedsLede').textContent = `One band per seed with a row per model: every attempt started from the identical run. The bar spans a model's lowest to highest last floor on that seed, the upright tick marks its median, and attempts that ended on the same floor are stacked. Click a mark to open its replay.`;
+  runStrip('seeds', 'cardSeeds', D.seeds.flatMap(seed => S.map((s, i) => ({ header: i === 0 ? 'Seed ' + seed : null, label: s.label, runs: runsOf(seed, s), connect: true, median: true, minH: 26 }))));
+} else {
+  // One attempt each: rows are seeds, a bar spans the gap between models.
+  runStrip('seeds', 'cardSeeds', D.seeds.map(seed => ({ label: 'Seed ' + seed, runs: runsOf(seed, null), connect: true, minH: 34 })));
+}
+// Where each run ended: rows are models.
+runStrip('dots', 'cardDots', S.map(s => ({ label: COMPARE ? s.model_label : s.label, sub: COMPARE ? s.suite_label : null, runs: runsOf(null, s), minH: 46 })));
+for (const [shape, text] of [['●', 'Died on this floor'], ['○', 'Cut short or still running (did not die)'], ['◆', 'Won the run']]) { const span = el('span'); span.append(el('b', null, shape), document.createTextNode(text)); $('glyphs').append(span); }
+
+// ---- every run
+(function () {
+  const t = $('runs'), head = el('tr');
+  for (const [h, n] of [['Model', 0], ['Seed', 0], ['Attempt', 1], ['Outcome', 0], ['Floor', 1], ['Act', 1], ['HP at end', 1], ['Requests', 1], ['Cost', 1], ['Minutes', 1], ['Replay', 0]]) head.append(el('th', n ? 'num' : null, h));
+  t.append(head);
+  for (const r of [...D.runs].sort((a, b) => idx(key(a)) - idx(key(b)) || bySeedAttempt(a, b))) {
+    const tr = el('tr'), name = el('td'), wrap = el('div', 'name'), sw = swatch(idx(key(r))); wrap.append(sw, document.createTextNode(r.series)); name.append(wrap);
+    tr.append(name, el('td', null, r.seed || '?'), el('td', 'num', String(r.attempt)), el('td', 'out', outText(r.outcome)), el('td', 'num', String(r.final_floor)), el('td', 'num', String(r.final_act ?? '?')),
+      el('td', 'num', `${r.hp_end ?? '?'}/${r.max_hp_end ?? '?'}`), el('td', 'num', String(r.requests) + (r.text_protocol ? ` (${r.text_protocol.fallbacks ?? 0} fallback${r.text_protocol.fallbacks === 1 ? '' : 's'})` : '')), el('td', 'num', money(r.cost)), el('td', 'num', r.duration_s ? (r.duration_s / 60).toFixed(1) : '–'));
+    const link = el('td'), a = el('a', null, 'Open'); a.href = r.replay; a.target = '_blank'; link.append(a); tr.append(link); t.append(tr);
+  }
+})();
+
+// ---- notes
+for (const line of [
+  ...(COMPARE ? [
+    `Comparison: each series is one model in one suite. A model keeps the colour it has in the suites' own reports; ${NSUITES > 2 ? 'the latest suite is drawn solid and earlier ones with dashed lines and hatched bars' : `${COMPARE.suites[1].label} is drawn with solid lines and bars, ${COMPARE.suites[0].label} with dashed lines and hatched bars`}. Every legend, end label, row label and tooltip names both the model and the suite.`,
+    'The suites were played separately, with whatever differs between them listed at the top (prompt, playbook, harness, limits). The same seed is the same starting run in every suite, so a gap between suites is the change plus luck, and with ten or so runs a side luck is large.',
+    'How sure: for a pooled success-rate change the range is a 95% interval for the difference of two proportions (Newcombe\'s method, built from Wilson intervals), which behaves sensibly at small counts. When it includes zero the change is within what luck alone produces at this sample size; it is not evidence that nothing changed. The change and interval both use pooled success rates. The interval assumes independent runs; shared seeds, repeated seeds and multiple comparisons are not adjusted for, so this is descriptive and does not establish a model-quality effect. Floors, cost and requests get no interval; the median is shown with the middle half of runs beside it.',
+  ] : []),
+  'Fairness: every run is started from (character, ascension, seed) with all game content unlocked, so the map, encounters, card offers and relics do not depend on the save profile. The same seed with the same choices reproduces the same run exactly.',
+  'Seeds fix what the game offers, not what happens next: two models that choose differently will meet different draws and rewards after their paths split. That is the intended comparison.',
+  'Survival is a Kaplan-Meier estimate: for each floor, the share of runs attempting it that survived it, multiplied floor by floor. A run stopped by a request, cost or floor cap is counted up to where it stopped and is never treated as a death. Interpreting this as an unconditional survival chance assumes non-informative censoring, which model-specific stalls or caps can violate.',
+  'Decided-run success rates exclude unresolved runs. These are conditional estimates, not guaranteed unbiased estimates: stalls, refusals, caps and infrastructure failures may depend on the model or difficulty. The JSON summary also gives batch_bounds, treating every unresolved run as failing versus clearing; these are outcome bounds, not confidence intervals.',
+  D.pass_k_unit === 'attempt'
+    ? 'Pass@k: for a stage that c of a model\'s n decided attempts at a seed got past, pass@k = 1 − C(n−c, k) / C(n, k), the chance that k of those attempts picked at random (without repeats) include at least one that got past it. It always reaches 100% by k = n when c is at least 1, so the informative part is how fast it climbs. The steps are coarse: with ' + D.max_attempts + ' attempts, one more or one fewer getting through moves pass@1 by about ' + Math.round(100 / D.max_attempts) + ' points.'
+    : 'Pass@k needs the same seed played several times. This suite played each seed once, so the report shows "at least one of k seeds" instead, computed the same way but drawing seeds; it is not a pass@k.',
+  'Floor figures in the scorecard (best, median, mean, range) are the last floor reached over every run on file, including runs cut short or still playing, which can only understate how far those would have got.',
+  'Rejected act calls count batches containing an actual game-command error, even when HTTP and tool-call formatting succeeded. Normal batch stops after draws or screen changes are excluded. This is a call-level rejection rate, not a per-command rate; tool errors are reported separately and may overlap.',
+  'With few runs per model the curves move a lot from one run to the next. Add seeds or attempts before reading anything into small gaps.',
+]) $('notes').append(el('li', null, line));
+</script>
+</body>
+</html>

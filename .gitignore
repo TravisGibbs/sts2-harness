@@ -1,0 +1,58 @@
+# .NET build output
+bin/
+obj/
+*.user
+*.dll
+*.pdb
+
+# Decompiled game code is reference-only and must never be committed
+decompiled/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Secrets and local config
+.env
+.env.*
+*.key
+*.pem
+
+# Run logs / transcripts
+runs/
+*.log
+*.jsonl
+*.jsonl.gz
+
+# Extra game instances: each one's copy of the game's user data, and its pid file
+.instances/
+
+# Benchmark recordings, reports and runner output: kept local, not in this repo
+bench/
+
+# Agent tooling and worktrees
+.claude/
+
+# Built site
+site_build/
+
+# Runs filmed in the real game (tools/render/) and other media outputs
+renders/
+*.mp4
+*.webm
+*.avi
+*.mkv
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+
+# Game replays and scratch
+*.mcr
+*.zip
+scratch/
+*.tmp
